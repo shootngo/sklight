@@ -1,7 +1,7 @@
-// SKLight Lights service worker: caches the app shell for offline launch.
+// Jeanie service worker: caches the app shell for offline launch.
 // Network first, so a new version shows up whenever the phone is online.
-const CACHE = 'sklight-v0.2';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
+const CACHE = 'sklight-v1.0';
+const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-192.png', './icons/maskable-512.png', './icons/apple-touch-icon.png', './icons/logo-96.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

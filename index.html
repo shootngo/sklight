@@ -2,243 +2,523 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#111418">
-<title>SKLight Lights</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16120f">
+<title>Jeanie</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Lights">
-<meta name="application-name" content="Lights">
+<meta name="apple-mobile-web-app-title" content="Jeanie">
+<meta name="application-name" content="Jeanie">
 <style>
-:root{color-scheme:dark}
-*{box-sizing:border-box}
-body{margin:0;background:#111418;color:#e8eaed;font:19px/1.4 system-ui,sans-serif;padding:14px;max-width:640px;margin:auto}
-h1{font-size:24px;margin:4px 0 2px}
-.ver{color:#9aa0a6;font-size:15px}
-#status{font-size:22px;font-weight:600;padding:14px;border-radius:12px;background:#202428;margin:12px 0}
-#notice{display:none;background:#5c1f1f;padding:12px;border-radius:10px;margin:10px 0}
-label{display:block;margin:10px 0 4px}
-input[type=text]{width:100%;font-size:20px;padding:10px;border-radius:8px;border:1px solid #444;background:#1b1f23;color:#fff;font-family:monospace}
-button{font-size:20px;padding:16px;border-radius:12px;border:0;margin:6px 0;width:100%;background:#2d6cdf;color:#fff;font-weight:600}
-button:disabled{opacity:.35}
-.row{display:flex;gap:8px}.row button{flex:1}
-#bGreen{background:#1e8e3e;font-size:24px;padding:22px}
-#bRed{background:#b3261e}
-#bDisc{background:#5f6368}
-.small{background:#3c4043;font-size:17px;padding:10px}
-details{background:#1b1f23;border-radius:12px;padding:10px;margin:12px 0}
-summary{font-size:20px;font-weight:600;padding:6px}
-input[type=range]{width:100%;height:36px}
-input[type=color]{width:100%;height:56px;border:0;background:none}
-.chk{display:flex;gap:10px;align-items:center;margin:10px 0}
-.chk input{width:26px;height:26px}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-#log{background:#000;color:#9fe39f;font:14px/1.35 monospace;padding:10px;border-radius:10px;height:300px;overflow:auto;white-space:pre-wrap;word-break:break-all}
-.hint{color:#9aa0a6;font-size:15px}
+:root{
+  color-scheme:dark;
+  --bg:#16120f;--bg2:#1f1915;--card:#262019;--card2:#2f2720;--line:#3a3028;
+  --text:#f4ece2;--muted:#b3a593;--dim:#7d7064;
+  --amber:#f2b45a;--amber2:#e39a3b;--ok:#8fcf8a;--warn:#e9a15e;--bad:#e27a6d;
+  --r:22px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font:18px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:0 16px calc(32px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto;
+  background:radial-gradient(120% 60% at 50% -10%,#3a2a1c 0%,var(--bg) 60%) fixed}
+header{display:flex;align-items:center;gap:12px;padding:calc(14px + env(safe-area-inset-top)) 0 8px;position:relative}
+header img{width:46px;height:46px;border-radius:14px;box-shadow:0 4px 18px #f2b45a33}
+header h1{font-size:30px;margin:0;font-weight:700;letter-spacing:.3px}
+.ver{position:absolute;right:0;top:calc(18px + env(safe-area-inset-top));font-size:13px;font-weight:700;color:var(--amber);border:1px solid #f2b45a66;border-radius:999px;padding:3px 10px;background:#f2b45a14}
+#summary{color:var(--muted);font-size:17px;margin:0 0 14px;min-height:24px;transition:color .3s}
+#notice{display:none;background:#4a2320;border:1px solid #7a3a33;padding:14px 16px;border-radius:var(--r);margin:10px 0 16px;font-size:17px}
+h2{font-size:15px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);margin:26px 4px 10px}
+button{font:inherit;color:inherit;border:0;cursor:pointer;transition:transform .12s,background .25s,opacity .25s,box-shadow .25s}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.38;cursor:default}
+button:disabled:active{transform:none}
+.card{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:var(--r);padding:16px;margin:0 0 12px;transition:border-color .3s,box-shadow .3s}
+.card.ready{border-color:#f2b45a55;box-shadow:0 0 0 1px #f2b45a22,0 8px 30px #f2b45a12}
+.set-top{display:flex;align-items:center;gap:12px}
+.dot{width:16px;height:16px;border-radius:50%;background:#4a4038;flex:none;transition:background .4s,box-shadow .4s}
+.set-name{font-size:22px;font-weight:650;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.set-state{font-size:16px;color:var(--muted);margin:4px 0 0 28px;transition:color .3s}
+.set-state.ok{color:var(--ok)}.set-state.warn{color:var(--warn)}.set-state.bad{color:var(--bad)}
+.set-actions{display:flex;gap:10px;margin-top:14px}
+.btn{flex:1;min-height:56px;border-radius:16px;background:#3a3029;font-size:19px;font-weight:600;padding:0 14px}
+.btn.primary{background:linear-gradient(180deg,var(--amber),var(--amber2));color:#2a1a08}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.big{display:flex;gap:12px}
+.big .btn{min-height:72px;font-size:22px;border-radius:20px}
+.btn.on{background:linear-gradient(180deg,#f6c983,#e8a54c);color:#2a1a08}
+.btn.off{background:#2b2420;border:1px solid var(--line)}
+#addSet{width:100%;min-height:60px;border-radius:18px;background:transparent;border:1.5px dashed #5a4b3e;color:var(--amber);font-size:19px;font-weight:600}
+.swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:4px 0 14px}
+.sw{aspect-ratio:1;border-radius:50%;border:3px solid transparent;box-shadow:inset 0 0 0 1px #0004}
+.sw.sel{border-color:var(--text);box-shadow:0 0 18px currentColor}
+.sw.custom{display:flex;align-items:center;justify-content:center;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);position:relative;overflow:hidden}
+.sw.custom input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.sw.custom span{width:42%;height:42%;border-radius:50%;background:var(--bg);display:block;border:2px solid #fff8}
+.slider{margin:6px 2px 18px}
+.slider label{display:flex;justify-content:space-between;color:var(--muted);font-size:17px;margin-bottom:6px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent}
+input[type=range]::-webkit-slider-runnable-track{height:14px;border-radius:999px;background:var(--track,linear-gradient(90deg,#3a3029,var(--amber)))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:34px;height:34px;border-radius:50%;background:#fff6ea;margin-top:-10px;box-shadow:0 2px 10px #0008}
+#warm{--track:linear-gradient(90deg,#3a3029,#ffd08a)}
+.preview{height:10px;border-radius:999px;margin:0 2px 16px;transition:background .3s}
+.targets{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.chip{min-height:44px;padding:0 16px;border-radius:999px;background:#2b2420;border:1px solid var(--line);font-size:16px;color:var(--muted)}
+.chip.sel{background:#f2b45a22;border-color:var(--amber);color:var(--amber)}
+.scenes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.scene{position:relative;min-height:84px;border-radius:18px;background:linear-gradient(160deg,#3a2d22,#2a221b);border:1px solid var(--line);font-size:17px;font-weight:600;padding:10px 8px;display:flex;align-items:center;justify-content:center;text-align:center;word-break:break-word}
+.scene.sel{border-color:var(--amber);box-shadow:0 0 16px #f2b45a33}
+.scene .pen{position:absolute;top:4px;right:4px;width:36px;height:36px;border-radius:50%;background:transparent;color:var(--dim);font-size:17px;display:flex;align-items:center;justify-content:center}
+.hint{color:var(--dim);font-size:15px;margin:8px 4px 0}
+details.adv{margin-top:26px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:4px 16px 16px}
+details.adv summary{list-style:none;font-size:19px;font-weight:600;padding:14px 0;color:var(--muted);cursor:pointer}
+details.adv summary::-webkit-details-marker{display:none}
+details.adv summary::after{content:'›';float:right;transition:transform .25s;font-size:24px;line-height:1}
+details.adv[open] summary::after{transform:rotate(90deg)}
+.field{margin:12px 0}
+.field label{display:block;color:var(--muted);font-size:16px;margin-bottom:6px}
+input[type=text]{width:100%;font-size:19px;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:#141010;color:var(--text);font-family:inherit}
+input.mono{font-family:ui-monospace,Menlo,monospace}
+.toggle{display:flex;align-items:center;gap:14px;margin:14px 0;font-size:17px}
+.toggle input{width:28px;height:28px;accent-color:var(--amber);flex:none}
+#log{background:#0c0a08;color:#cfe8c4;font:13px/1.4 ui-monospace,Menlo,monospace;padding:12px;border-radius:14px;height:260px;overflow:auto;white-space:pre-wrap;word-break:break-all;border:1px solid var(--line)}
+.row{display:flex;gap:10px;margin:10px 0}
+dialog{border:1px solid var(--line);border-radius:24px;background:var(--card2);color:var(--text);padding:22px;width:min(92vw,460px)}
+dialog::backdrop{background:#000a;backdrop-filter:blur(3px)}
+dialog h3{margin:0 0 10px;font-size:22px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,30px);opacity:0;background:#3a3029;border:1px solid var(--line);padding:12px 20px;border-radius:999px;font-size:16px;transition:all .3s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
 <body>
-<h1>SKLight Test</h1>
-<div class="ver">V 0.2 - Westinghouse SKLight string lights</div>
-<div id="notice">Web Bluetooth is not available here. Open this page in <b>Chrome</b> on your Android phone, and turn on <b>Bluetooth</b> and <b>Location</b>.</div>
-<div id="status">Not connected</div>
+<header>
+  <img src="icons/logo-96.png" alt="" width="46" height="46">
+  <h1>Jeanie</h1>
+  <span class="ver" id="ver">V 1.0</span>
+</header>
+<div id="summary">Tap Connect on a light set to begin.</div>
+<div id="notice">This needs <b>Chrome</b> on an Android phone, with <b>Bluetooth</b> and <b>Location</b> turned on.</div>
 
-<label for="mac">Light address (MAC)</label>
-<input type="text" id="mac" autocomplete="off" spellcheck="false">
-<div class="hint">Chrome can't read the light's address, so it's typed here. It's used to work out the unlock code.</div>
+<h2>Light sets</h2>
+<div id="sets"></div>
+<button id="addSet">+ Add a light set</button>
 
-<div class="chk"><input type="checkbox" id="optTime" checked><label for="optTime" style="margin:0">After unlocking, set the light's clock (the original app does this)</label></div>
+<h2>All lights</h2>
+<div class="big">
+  <button class="btn on" id="allOn" disabled>On</button>
+  <button class="btn off" id="allOff" disabled>Off</button>
+</div>
 
-<button id="bConn">Connect</button>
-<button id="bGreen" disabled>Test: Green (half)</button>
-<button id="bRed" disabled>Undo: Back to red</button>
-<button id="bDisc" disabled>Disconnect</button>
+<h2>Color</h2>
+<div class="targets" id="targets"></div>
+<div class="swatches" id="swatches"></div>
+<div class="preview" id="preview"></div>
+<div class="slider">
+  <label for="bright"><span>Brightness</span><span id="brightV">100%</span></label>
+  <input type="range" id="bright" min="1" max="100" value="100">
+</div>
+<button class="btn primary" id="sync" style="width:100%;min-height:64px;font-size:21px" disabled>Sync Color to all sets</button>
 
-<details id="more">
-<summary>More</summary>
-<div class="row"><button id="bOn" disabled>On</button><button id="bOff" disabled>Off</button></div>
-<label for="color">Color</label>
-<input type="color" id="color" value="#ff0000">
-<label for="bright">Brightness: <span id="brightV">100</span>%</label>
-<input type="range" id="bright" min="1" max="100" value="100">
-<button id="bColor" disabled>Send color</button>
-<label for="warm">Warm white: <span id="warmV">128</span></label>
-<input type="range" id="warm" min="0" max="255" value="128">
-<button id="bWarm" disabled>Send warm white</button>
-<label>Scenes</label>
-<div class="grid" id="scenes"></div>
-<div class="chk"><input type="checkbox" id="optAuth"><label for="optAuth" style="margin:0">Use auth bytes in last 2 positions (default off = 00 00, like the app)</label></div>
+<h2>Warm white</h2>
+<div class="slider">
+  <label for="warm"><span>Warmth level</span><span id="warmV">50%</span></label>
+  <input type="range" id="warm" min="0" max="255" value="128">
+</div>
+
+<h2>Scenes</h2>
+<div class="scenes" id="scenes"></div>
+<div class="hint">Tap a scene to play it. Tap ✎ or press and hold to rename.</div>
+
+<details class="adv" id="adv">
+  <summary>Advanced</summary>
+  <div id="macFields"></div>
+  <label class="toggle"><input type="checkbox" id="optTime"> Set each light's clock after unlocking (the original app does this)</label>
+  <label class="toggle"><input type="checkbox" id="optAuth"> Put the unlock bytes in the last 2 positions of commands (normally off)</label>
+  <div class="row"><button class="btn" id="copyLog">Copy log</button><button class="btn ghost" id="clearLog">Clear</button></div>
+  <div id="log"></div>
 </details>
 
-<div class="row"><button class="small" id="bCopy">Copy log</button><button class="small" id="bClear">Clear log</button></div>
-<div id="log"></div>
+<dialog id="dlg">
+  <form method="dialog" id="dlgForm">
+    <h3 id="dlgTitle"></h3>
+    <div class="field" id="dlgF1"><label for="dlgIn1" id="dlgL1"></label><input type="text" id="dlgIn1" autocomplete="off"></div>
+    <div class="field" id="dlgF2"><label for="dlgIn2" id="dlgL2"></label><input type="text" id="dlgIn2" class="mono" autocomplete="off" spellcheck="false"></div>
+    <div class="row"><button class="btn ghost" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="ok" id="dlgOk">Save</button></div>
+  </form>
+</dialog>
+<div class="toast" id="toast"></div>
 
 <script>
 'use strict';
+const VERSION='V 1.0';
 const SVC1=0xfff0, SVC2=0xfff4;
+const DEFAULT_MAC='C5:62:A5:B2:B8:16';
+const SCENE_DEFAULTS=['Glimmer','Flash','Dazzle','Wink','Vivid','Spectrum','Patriotic','Spring','Christmas']; // names from the original app
+const SWATCHES=['#ff3b30','#ff9500','#ffcc00','#ffd9a0','#34c759','#00c7be','#007aff','#5856d6','#ff2d92'];
 const $=id=>document.getElementById(id);
 const hex=a=>Array.from(a,b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-let dev=null, ch={}, unlocked=false, beat=null, authBytes=[0,0], busy=Promise.resolve();
 
+/* ---------- log ---------- */
 function ts(){const d=new Date();return d.toTimeString().slice(0,8)+'.'+String(d.getMilliseconds()).padStart(3,'0');}
-function log(m){const L=$('log');L.textContent+='['+ts()+'] '+m+'\n';L.scrollTop=L.scrollHeight;}
-function status(m){$('status').textContent=m;log('STATUS: '+m);}
-function setCtl(on){document.querySelectorAll('.ctl').forEach(b=>b.disabled=!on);}
+function log(m){const L=$('log');L.textContent+='['+ts()+'] '+m+'\n';if(L.textContent.length>200000)L.textContent=L.textContent.slice(-150000);L.scrollTop=L.scrollHeight;}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2200);}
 
-// MAC field
-const macIn=$('mac');
-macIn.value=localStorage.getItem('sklight_mac')||'C5:62:A5:B2:B8:16';
-macIn.addEventListener('change',()=>localStorage.setItem('sklight_mac',macIn.value.trim()));
-function parseMac(){
-  const s=macIn.value.trim().replace(/[^0-9a-fA-F]/g,'');
-  if(s.length!==12) return null;
-  const m=[];for(let i=0;i<12;i+=2)m.push(parseInt(s.substr(i,2),16));
-  return m;
+/* ---------- saved data ---------- */
+function loadSets(){
+  try{const s=JSON.parse(localStorage.getItem('jeanie_sets')||'null');if(Array.isArray(s)&&s.length)return s;}catch(e){}
+  return [{id:1,name:'Set 1',mac:localStorage.getItem('sklight_mac')||DEFAULT_MAC}];
+}
+let sets=loadSets();
+function saveSets(){localStorage.setItem('jeanie_sets',JSON.stringify(sets));}
+saveSets();
+let sceneNames;
+try{sceneNames=JSON.parse(localStorage.getItem('jeanie_scenes')||'null');}catch(e){}
+if(!Array.isArray(sceneNames)||sceneNames.length!==9)sceneNames=SCENE_DEFAULTS.slice();
+function saveScenes(){localStorage.setItem('jeanie_scenes',JSON.stringify(sceneNames));}
+$('optTime').checked=localStorage.getItem('jeanie_optTime')!=='0';
+$('optAuth').checked=localStorage.getItem('jeanie_optAuth')==='1';
+$('optTime').onchange=()=>localStorage.setItem('jeanie_optTime',$('optTime').checked?'1':'0');
+$('optAuth').onchange=()=>localStorage.setItem('jeanie_optAuth',$('optAuth').checked?'1':'0');
+
+function parseMac(s){
+  s=(s||'').trim().replace(/[^0-9a-fA-F]/g,'');
+  if(s.length!==12)return null;
+  const m=[];for(let i=0;i<12;i+=2)m.push(parseInt(s.substr(i,2),16));return m;
 }
 
-// All GATT ops go through one queue so they never overlap
-function q(fn){const p=busy.then(fn,fn);busy=p.catch(()=>{});return p;}
-async function write(c,bytes,name,withResp){
+/* ---------- per-set runtime ---------- */
+const rt={}; // id -> {dev,ch,unlocked,beat,authBytes,busy,state,cls,color,power}
+function R(id){return rt[id]||(rt[id]={dev:null,ch:{},unlocked:false,beat:null,authBytes:[0,0],busy:Promise.resolve(),state:'Not connected',cls:'',lastNotify:null});}
+function readyIds(){return sets.filter(s=>{const r=rt[s.id];return r&&r.unlocked&&r.dev&&r.dev.gatt.connected;}).map(s=>s.id);}
+function nameOf(id){const s=sets.find(x=>x.id===id);return s?s.name:'Set';}
+
+// one GATT queue per set so operations never overlap
+function q(r,fn){const p=r.busy.then(fn,fn);r.busy=p.catch(()=>{});return p;}
+async function write(r,c,bytes,name){
   const data=new Uint8Array(bytes);
-  return q(async()=>{
+  return q(r,async()=>{
     // The original app writes without response (Android's default for these characteristics)
-    if(!withResp&&c.writeValueWithoutResponse){
+    if(c.writeValueWithoutResponse){
       try{await c.writeValueWithoutResponse(data);return;}catch(e){log(name+' no-response write refused ('+e.message+'), retrying with response');}
     }
     await (c.writeValueWithResponse?c.writeValueWithResponse(data):c.writeValue(data));
   });
 }
-async function read(c){return q(async()=>new Uint8Array((await c.readValue()).buffer));}
+async function read(r,c){return q(r,async()=>new Uint8Array((await c.readValue()).buffer));}
 
 function decode(v){
   const t=v[0];
-  if(t===1) return 'color R='+v[1]+' G='+v[2]+' B='+v[3];
-  if(t===2) return 'warm white level '+v[1];
-  if(t===3) return v[1]===1?'power ON':(v[1]===2?'power OFF':'power code '+v[1]);
-  if(t===4) return 'scene '+v[1];
+  if(t===1)return 'color R='+v[1]+' G='+v[2]+' B='+v[3];
+  if(t===2)return 'warm white level '+v[1];
+  if(t===3)return v[1]===1?'power ON':(v[1]===2?'power OFF':'power code '+v[1]);
+  if(t===4)return 'scene '+v[1];
   return 'unknown';
 }
 
-if(!navigator.bluetooth){$('notice').style.display='block';$('bConn').disabled=true;status('Web Bluetooth not available');}
+function setState(id,state,cls){const r=R(id);r.state=state;r.cls=cls||'';renderSets();renderSummary();}
 
-$('bConn').onclick=async()=>{
-  const mac=parseMac();
-  if(!mac){status('Check the address - it needs 12 hex digits like C5:62:A5:B2:B8:16');return;}
-  localStorage.setItem('sklight_mac',macIn.value.trim());
+/* ---------- connect / unlock (same steps and bytes as V 0.1/0.2) ---------- */
+async function connectSet(id){
+  const set=sets.find(s=>s.id===id);if(!set)return;
+  const r=R(id);const tag='['+set.name+'] ';
+  const mac=parseMac(set.mac);
+  if(!mac){setState(id,'Needs its light address — open Advanced','bad');$('adv').open=true;return;}
+  let dev;
   try{
-    status('Choose SKLight in the list…');
+    setState(id,'Choose the light in the list…','warn');
     dev=await navigator.bluetooth.requestDevice({filters:[{name:'SKLight'}],optionalServices:[SVC1,SVC2]});
-    dev.addEventListener('gattserverdisconnected',onDisc);
-    status('Connecting…');
+  }catch(e){log(tag+'Picker closed: '+e.message);setState(id,'Not connected','');return;}
+  // don't let one physical light be attached to two sets
+  for(const s of sets){if(s.id!==id&&rt[s.id]&&rt[s.id].dev&&rt[s.id].dev.id===dev.id&&rt[s.id].dev.gatt.connected){setState(id,'That light is already '+s.name,'bad');return;}}
+  r.dev=dev;r.unlocked=false;r.ch={};
+  dev.addEventListener('gattserverdisconnected',()=>onDisc(id));
+  try{
+    setState(id,'Connecting…','warn');
     const srv=await dev.gatt.connect();
-    log('Connected to '+(dev.name||'?')+' (id '+dev.id+')');
+    log(tag+'Connected to '+(dev.name||'?')+' (id '+dev.id+')');
     const s1=await srv.getPrimaryService(SVC1), s2=await srv.getPrimaryService(SVC2);
-    ch.fff1=await s1.getCharacteristic(0xfff1);
-    ch.fff2=await s1.getCharacteristic(0xfff2);
-    ch.fff3=await s1.getCharacteristic(0xfff3);
-    ch.fff5=await s2.getCharacteristic(0xfff5);
-    ch.fff6=await s2.getCharacteristic(0xfff6);
-    $('bDisc').disabled=false;$('bConn').disabled=true;
+    r.ch.fff1=await s1.getCharacteristic(0xfff1);
+    r.ch.fff2=await s1.getCharacteristic(0xfff2);
+    r.ch.fff3=await s1.getCharacteristic(0xfff3);
+    r.ch.fff5=await s2.getCharacteristic(0xfff5);
+    r.ch.fff6=await s2.getCharacteristic(0xfff6);
+    setState(id,'Connected','warn');
     // 1. notifications on FFF2
-    ch.fff2.addEventListener('characteristicvaluechanged',e=>{const v=new Uint8Array(e.target.value.buffer);log('FFF2 notify: '+hex(v)+'  = '+decode(v));});
-    await q(()=>ch.fff2.startNotifications());
-    log('FFF2 notifications on');
+    r.ch.fff2.addEventListener('characteristicvaluechanged',e=>{
+      const v=new Uint8Array(e.target.value.buffer);
+      log(tag+'FFF2 notify: '+hex(v)+'  = '+decode(v));
+      r.lastNotify=v;renderDots();
+    });
+    await q(r,()=>r.ch.fff2.startNotifications());
+    log(tag+'FFF2 notifications on');
     // 2. keep-alive 11 -> FFF5 every 2 s (the app runs this for every connected light)
-    startBeat();
-    status('Connected — unlocking…');
+    startBeat(id);
+    setState(id,'Unlocking…','warn');
     // 3. read random challenge from FFF3
-    const r=await read(ch.fff3);
-    log('FFF3 challenge: '+hex(r));
-    if(r.length<4) throw new Error('FFF3 gave fewer than 4 bytes');
-    const a0=(mac[0]^mac[1]^mac[2]^r[0]^r[1])&255, a1=(mac[3]^mac[4]^mac[5]^r[2]^r[3])&255;
-    authBytes=[a0,a1];
+    const c=await read(r,r.ch.fff3);
+    log(tag+'FFF3 challenge: '+hex(c));
+    if(c.length<4)throw new Error('FFF3 gave fewer than 4 bytes');
+    const a0=(mac[0]^mac[1]^mac[2]^c[0]^c[1]) & 255, a1=(mac[3]^mac[4]^mac[5]^c[2]^c[3]) & 255;
+    r.authBytes=[a0,a1];
     const auth=[a0,a1,255,255,255,255,255,255,255,255,255,255,255,255];
     // 4. answer 3 times like the app
     for(let i=1;i<=3;i++){
-      try{await write(ch.fff3,auth,'FFF3',false);log('FFF3 answer #'+i+': '+hex(auth));}
-      catch(e){log('FFF3 answer #'+i+' failed: '+e.message);}
+      try{await write(r,r.ch.fff3,auth,'FFF3');log(tag+'FFF3 answer #'+i+': '+hex(auth));}
+      catch(e){log(tag+'FFF3 answer #'+i+' failed: '+e.message);}
       await sleep(150);
     }
     // 5. optional clock set, as the app does after the answer
     if($('optTime').checked){
       const d=new Date(), wd=(d.getDay()+6)%7; // 0=Mon..6=Sun
       const t=[wd,d.getHours(),d.getMinutes(),d.getSeconds()];
-      try{await write(ch.fff6,t,'FFF6',false);log('FFF6 clock set: '+hex(t));}catch(e){log('FFF6 clock set failed: '+e.message);}
+      try{await write(r,r.ch.fff6,t,'FFF6');log(tag+'FFF6 clock set: '+hex(t));}catch(e){log(tag+'FFF6 clock set failed: '+e.message);}
     }
     await sleep(1000);
     // 6. check result
     let chk=null;
-    try{chk=await read(ch.fff3);log('FFF3 after unlock: '+hex(chk));}catch(e){log('FFF3 check read failed: '+e.message);}
+    try{chk=await read(r,r.ch.fff3);log(tag+'FFF3 after unlock: '+hex(chk));}catch(e){log(tag+'FFF3 check read failed: '+e.message);}
     if(chk&&chk.length&&chk.every(b=>b===0)){
-      log('UNLOCK FAILED');
-      status('Unlock FAILED (FFF3 '+hex(chk)+') — tap Copy log and send it to me');
+      log(tag+'UNLOCK FAILED');
+      setState(id,"Couldn't unlock — try again",'bad');
     }else{
-      unlocked=true; setCtl(true);
-      if(chk&&chk[0]===1){log('UNLOCKED');status('Unlocked — keeping awake (FFF3 '+hex(chk)+')');}
-      else status('Unlock answer sent, check unclear (FFF3 '+(chk?hex(chk):'n/a')+') — keeping awake');
+      r.unlocked=true;
+      if(chk&&chk[0]===1)log(tag+'UNLOCKED');else log(tag+'Unlock check unclear (FFF3 '+(chk?hex(chk):'n/a')+'), treating as ready');
+      setState(id,'Ready','ok');
+      toast(set.name+' is ready');
     }
   }catch(e){
-    log('ERROR: '+e.message);
-    status(e.name==='NotFoundError'?'No light chosen':'Connect failed: '+e.message);
-    if(dev&&dev.gatt.connected) dev.gatt.disconnect(); else resetUI();
+    log(tag+'ERROR: '+e.message);
+    setState(id,"Couldn't connect — try again",'bad');
+    if(dev&&dev.gatt.connected)dev.gatt.disconnect();
   }
-};
+}
 
-function startBeat(){
-  stopBeat();
+function startBeat(id){
+  const r=R(id);stopBeat(id);
   const send=async()=>{
-    if(!dev||!dev.gatt.connected){stopBeat();return;}
-    try{await write(ch.fff5,[0x11],'FFF5',false);}catch(e){log('Keep-alive failed: '+e.message);}
+    if(!r.dev||!r.dev.gatt.connected){stopBeat(id);return;}
+    try{await write(r,r.ch.fff5,[0x11],'FFF5');}catch(e){log('['+nameOf(id)+'] Keep-alive failed: '+e.message);}
   };
-  send(); beat=setInterval(send,2000);
-  log('Keep-alive started: 11 -> FFF5 every 2 s');
+  send();r.beat=setInterval(send,2000);
+  log('['+nameOf(id)+'] Keep-alive started: 11 -> FFF5 every 2 s');
 }
-function stopBeat(){if(beat){clearInterval(beat);beat=null;log('Keep-alive stopped');}}
+function stopBeat(id){const r=rt[id];if(r&&r.beat){clearInterval(r.beat);r.beat=null;log('['+nameOf(id)+'] Keep-alive stopped');}}
+function onDisc(id){const r=R(id);stopBeat(id);r.unlocked=false;r.lastNotify=null;log('['+nameOf(id)+'] Disconnected');setState(id,'Disconnected','');}
+function disconnectSet(id){const r=rt[id];stopBeat(id);if(r&&r.dev&&r.dev.gatt.connected)r.dev.gatt.disconnect();else onDisc(id);}
 
-function resetUI(){unlocked=false;setCtl(false);$('bConn').disabled=!navigator.bluetooth;$('bDisc').disabled=true;}
-function onDisc(){stopBeat();resetUI();status('Disconnected');}
-$('bDisc').onclick=()=>{stopBeat();if(dev&&dev.gatt.connected)dev.gatt.disconnect();else onDisc();};
-
-async function cmd(bytes,label,times){
-  if(!unlocked||!dev||!dev.gatt.connected){status('Not connected');return;}
-  const b=bytes.slice(0,5);
-  if($('optAuth').checked){b.push(authBytes[0],authBytes[1]);}else{b.push(0,0);}
-  for(let i=0;i<(times||1);i++){
-    try{await write(ch.fff1,b,'FFF1',false);log('FFF1 '+label+': '+hex(b));}
-    catch(e){log('FFF1 '+label+' failed: '+e.message);}
-    if(times>1) await sleep(200);
-  }
+/* ---------- commands (same bytes as before) ---------- */
+function build(bytes5,id){
+  const b=bytes5.slice(0,5);const r=R(id);
+  if($('optAuth').checked)b.push(r.authBytes[0],r.authBytes[1]);else b.push(0,0);
+  return b;
+}
+async function cmdTo(ids,bytes5,label,times){
+  if(!ids.length){toast('Connect a light set first');return;}
+  await Promise.all(ids.map(async id=>{
+    const r=R(id);const b=build(bytes5,id);
+    for(let i=0;i<(times||1);i++){
+      try{await write(r,r.ch.fff1,b,'FFF1');log('['+nameOf(id)+'] FFF1 '+label+': '+hex(b));}
+      catch(e){log('['+nameOf(id)+'] FFF1 '+label+' failed: '+e.message);}
+      if(times>1)await sleep(200);
+    }
+  }));
+}
+// for sliders: send only the newest value per set, never pile up writes
+const pending={};
+function cmdLatest(ids,bytes5,label){
+  ids.forEach(id=>{
+    const first=!pending[id];pending[id]={bytes5,label};
+    if(!first)return;
+    (async()=>{
+      while(pending[id]){
+        const p=pending[id];
+        await cmdTo([id],p.bytes5,p.label);
+        if(pending[id]===p)delete pending[id];
+      }
+    })();
+  });
 }
 
-$('bGreen').classList.add('ctl');$('bRed').classList.add('ctl');
-$('bGreen').onclick=()=>cmd([0xFA,1,0,0x7F,0],'Test green half');
-$('bRed').onclick=()=>cmd([0xFA,1,0x7F,0,0],'Back to red');
-['bOn','bOff','bColor','bWarm'].forEach(id=>$(id).classList.add('ctl'));
-$('bOn').onclick=()=>cmd([0xFA,3,1,0,0],'On',3);
-$('bOff').onclick=()=>cmd([0xFA,3,2,0,0],'Off',3);
-$('bright').oninput=()=>$('brightV').textContent=$('bright').value;
-$('warm').oninput=()=>$('warmV').textContent=$('warm').value;
-$('bColor').onclick=()=>{
-  const c=$('color').value, k=$('bright').value/100;
-  const rgb=[1,3,5].map(i=>Math.round(parseInt(c.substr(i,2),16)*k));
-  cmd([0xFA,1,rgb[0],rgb[1],rgb[2]],'Color');
-};
-$('bWarm').onclick=()=>cmd([0xFA,2,parseInt($('warm').value,10),0,0],'Warm white');
-for(let n=1;n<=9;n++){const b=document.createElement('button');b.textContent='Scene '+n;b.className='ctl';b.disabled=true;b.onclick=()=>cmd([0xFA,4,n,0,0],'Scene '+n);$('scenes').appendChild(b);}
+/* ---------- state for color ---------- */
+let color=localStorage.getItem('jeanie_color')||'#ffd9a0';
+let target='all'; // 'all' or a set id
+function targetIds(){const ready=readyIds();return target==='all'?ready:ready.filter(id=>id===target);}
+function rgbNow(){
+  const k=$('bright').value/100;
+  return [1,3,5].map(i=>Math.round(parseInt(color.substr(i,2),16)*k));
+}
+function colorBytes(){const c=rgbNow();return [0xFA,1,c[0],c[1],c[2]];}
+function updatePreview(){const c=rgbNow();$('preview').style.background='rgb('+c.join(',')+')';$('preview').style.boxShadow='0 0 20px rgb('+c.join(',')+')';}
 
-$('bClear').onclick=()=>{$('log').textContent='';};
-$('bCopy').onclick=async()=>{
-  const t='SKLight Test V 0.2 log\n'+$('log').textContent;
-  try{await navigator.clipboard.writeText(t);status('Log copied');}
-  catch(e){const r=document.createRange();r.selectNodeContents($('log'));const s=getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');status('Log selected/copied');}
+/* ---------- rendering ---------- */
+function renderSummary(){
+  const n=readyIds().length;
+  const busy=sets.some(s=>rt[s.id]&&/…/.test(rt[s.id].state));
+  $('summary').textContent=n?(n===1?'1 light set ready':n+' light sets ready'):(busy?'Working…':'Tap Connect on a light set to begin.');
+  const none=!n;
+  ['allOn','allOff','sync'].forEach(b=>$(b).disabled=none);
+  document.querySelectorAll('.scene').forEach(b=>b.dataset.dis=none?'1':'');
+  renderTargets();
+}
+function renderDots(){
+  sets.forEach(s=>{
+    const el=document.querySelector('[data-dot="'+s.id+'"]');if(!el)return;
+    const r=rt[s.id];let bg='#4a4038',sh='none';
+    if(r&&r.unlocked){bg='#8fcf8a';sh='0 0 12px #8fcf8a88';
+      const v=r.lastNotify;
+      if(v&&v[0]===1&&(v[1]||v[2]||v[3])){const m=Math.max(v[1],v[2],v[3])||1;const c=[v[1],v[2],v[3]].map(x=>Math.round(x*255/m));bg='rgb('+c.join(',')+')';sh='0 0 14px '+bg;}
+      if(v&&v[0]===2){bg='#ffd08a';sh='0 0 14px #ffd08a';}
+      if(v&&v[0]===3&&v[1]===2){bg='#4a4038';sh='none';}
+    }else if(r&&r.dev&&r.dev.gatt.connected){bg='#e9a15e';}
+    el.style.background=bg;el.style.boxShadow=sh;
+  });
+}
+function renderSets(){
+  const box=$('sets');box.innerHTML='';
+  sets.forEach(s=>{
+    const r=R(s.id);const conn=r.dev&&r.dev.gatt.connected;
+    const card=document.createElement('div');card.className='card'+(r.unlocked&&conn?' ready':'');
+    const top=document.createElement('div');top.className='set-top';
+    const dot=document.createElement('span');dot.className='dot';dot.dataset.dot=s.id;
+    const nm=document.createElement('div');nm.className='set-name';nm.textContent=s.name;
+    top.append(dot,nm);
+    const st=document.createElement('div');st.className='set-state '+r.cls;st.textContent=r.state;
+    const act=document.createElement('div');act.className='set-actions';
+    const working=/…/.test(r.state);
+    if(r.unlocked&&conn){
+      const on=document.createElement('button');on.className='btn on';on.textContent='On';on.onclick=()=>cmdTo([s.id],[0xFA,3,1,0,0],'On',3);
+      const off=document.createElement('button');off.className='btn off';off.textContent='Off';off.onclick=()=>cmdTo([s.id],[0xFA,3,2,0,0],'Off',3);
+      const dc=document.createElement('button');dc.className='btn ghost';dc.textContent='Disconnect';dc.style.flex='0 0 auto';dc.onclick=()=>disconnectSet(s.id);
+      act.append(on,off,dc);
+    }else{
+      const c=document.createElement('button');c.className='btn primary';c.textContent=working?'Working…':(conn?'Reconnect':'Connect');
+      c.disabled=working||!navigator.bluetooth;
+      c.onclick=()=>{if(conn)disconnectSet(s.id);connectSet(s.id);};
+      act.append(c);
+      if(conn&&!working){const dc=document.createElement('button');dc.className='btn ghost';dc.textContent='Disconnect';dc.onclick=()=>disconnectSet(s.id);act.append(dc);}
+    }
+    card.append(top,st,act);box.appendChild(card);
+  });
+  renderDots();renderMacFields();
+}
+function renderTargets(){
+  const box=$('targets');box.innerHTML='';
+  const ready=readyIds();
+  if(target!=='all'&&!ready.includes(target))target='all';
+  if(ready.length<2){box.style.display='none';return;}
+  box.style.display='flex';
+  const mk=(label,val)=>{const b=document.createElement('button');b.className='chip'+(target===val?' sel':'');b.textContent=label;b.onclick=()=>{target=val;renderTargets();};box.appendChild(b);};
+  mk('All sets','all');ready.forEach(id=>mk(nameOf(id),id));
+}
+function renderMacFields(){
+  const box=$('macFields');
+  if(box.contains(document.activeElement))return; // don't redraw while typing
+  box.innerHTML='';
+  sets.forEach(s=>{
+    const f=document.createElement('div');f.className='field';
+    const l=document.createElement('label');l.textContent=s.name+' — light address (MAC)';
+    const i=document.createElement('input');i.type='text';i.className='mono';i.value=s.mac;i.spellcheck=false;i.autocomplete='off';
+    i.onchange=()=>{s.mac=i.value.trim();saveSets();log('['+s.name+'] address set to '+s.mac+(parseMac(s.mac)?'':' (not valid)'));};
+    const row=document.createElement('div');row.className='row';
+    const rn=document.createElement('button');rn.className='btn ghost';rn.textContent='Rename';rn.onclick=()=>editSet(s);
+    row.append(rn);
+    if(sets.length>1){const rm=document.createElement('button');rm.className='btn ghost';rm.textContent='Remove';rm.onclick=()=>{if(confirm('Remove '+s.name+'?')){disconnectSet(s.id);sets=sets.filter(x=>x!==s);saveSets();renderSets();renderSummary();}};row.append(rm);}
+    f.append(l,i,row);box.appendChild(f);
+  });
+}
+
+/* ---------- dialog helper ---------- */
+function ask(title,l1,v1,l2,v2){
+  return new Promise(res=>{
+    $('dlgTitle').textContent=title;
+    $('dlgL1').textContent=l1;$('dlgIn1').value=v1||'';
+    $('dlgF2').style.display=l2?'block':'none';$('dlgL2').textContent=l2||'';$('dlgIn2').value=v2||'';
+    const d=$('dlg');
+    d.onclose=()=>res(d.returnValue==='ok'?[$('dlgIn1').value.trim(),$('dlgIn2').value.trim()]:null);
+    d.returnValue='';d.showModal();setTimeout(()=>$('dlgIn1').select(),50);
+  });
+}
+async function editSet(s){
+  const a=await ask('Rename light set','Name',s.name);
+  if(a&&a[0]){s.name=a[0].slice(0,30);saveSets();renderSets();renderSummary();}
+}
+$('addSet').onclick=async()=>{
+  const n=sets.length+1;
+  const a=await ask('Add a light set','Name','Set '+n,'Light address (MAC) — printed on the controller or shown in nRF Connect','');
+  if(!a)return;
+  if(!parseMac(a[1])){toast('That address needs 12 letters/numbers, like C5:62:A5:B2:B8:16');return;}
+  const id=Math.max(0,...sets.map(s=>s.id))+1;
+  const s={id,name:(a[0]||'Set '+n).slice(0,30),mac:a[1].toUpperCase()};
+  sets.push(s);saveSets();renderSets();renderSummary();
+  log('Added '+s.name+' ('+s.mac+')');
+  connectSet(id);
 };
-setCtl(false);
-log('Page loaded. V 0.2. Nothing is sent until you tap Connect.');
+
+/* ---------- controls ---------- */
+$('allOn').onclick=()=>cmdTo(readyIds(),[0xFA,3,1,0,0],'On',3);
+$('allOff').onclick=()=>cmdTo(readyIds(),[0xFA,3,2,0,0],'Off',3);
+$('sync').onclick=async()=>{const ids=readyIds();await cmdTo(ids,colorBytes(),'Sync color');toast('Color sent to '+ids.length+(ids.length===1?' set':' sets'));};
+
+function renderSwatches(){
+  const box=$('swatches');box.innerHTML='';
+  SWATCHES.forEach(c=>{
+    const b=document.createElement('button');b.className='sw'+(c===color?' sel':'');b.style.background=c;b.style.color=c;b.setAttribute('aria-label','Color '+c);
+    b.onclick=()=>pickColor(c);box.appendChild(b);
+  });
+  const cu=document.createElement('label');cu.className='sw custom'+(SWATCHES.includes(color)?'':' sel');cu.title='Any color';
+  const inp=document.createElement('input');inp.type='color';inp.value=color;
+  inp.oninput=()=>{color=inp.value;localStorage.setItem('jeanie_color',color);updatePreview();cmdLatest(targetIds(),colorBytes(),'Color');};
+  inp.onchange=()=>pickColor(inp.value);
+  const sp=document.createElement('span');cu.append(inp,sp);box.appendChild(cu);
+}
+function pickColor(c){color=c;localStorage.setItem('jeanie_color',c);renderSwatches();updatePreview();cmdLatest(targetIds(),colorBytes(),'Color');}
+$('bright').oninput=()=>{$('brightV').textContent=$('bright').value+'%';updatePreview();cmdLatest(targetIds(),colorBytes(),'Brightness');};
+$('warm').oninput=()=>{$('warmV').textContent=Math.round($('warm').value/2.55)+'%';cmdLatest(targetIds(),[0xFA,2,parseInt($('warm').value,10),0,0],'Warm white');};
+
+function renderScenes(){
+  const box=$('scenes');box.innerHTML='';
+  sceneNames.forEach((name,i)=>{
+    const n=i+1;
+    const b=document.createElement('button');b.className='scene';
+    const t=document.createElement('span');t.textContent=name;
+    const pen=document.createElement('span');pen.className='pen';pen.textContent='✎';pen.setAttribute('role','button');pen.setAttribute('aria-label','Rename '+name);
+    b.append(t,pen);
+    let held=false,timer=null;
+    b.addEventListener('pointerdown',()=>{held=false;timer=setTimeout(()=>{held=true;renameScene(i);},600);});
+    ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>clearTimeout(timer)));
+    b.addEventListener('contextmenu',e=>e.preventDefault());
+    b.onclick=e=>{
+      if(held){held=false;return;}
+      if(e.target===pen){renameScene(i);return;}
+      const ids=targetIds();
+      if(!ids.length){toast('Connect a light set first');return;}
+      document.querySelectorAll('.scene').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');
+      cmdTo(ids,[0xFA,4,n,0,0],'Scene '+n+' ('+name+')');
+    };
+    box.appendChild(b);
+  });
+}
+async function renameScene(i){
+  const a=await ask('Rename scene '+(i+1),'Name (leave empty for “'+SCENE_DEFAULTS[i]+'”)',sceneNames[i]);
+  if(!a)return;
+  sceneNames[i]=(a[0]||SCENE_DEFAULTS[i]).slice(0,24);saveScenes();renderScenes();
+}
+
+$('clearLog').onclick=()=>{$('log').textContent='';};
+$('copyLog').onclick=async()=>{
+  const t='Jeanie '+VERSION+' log\n'+$('log').textContent;
+  try{await navigator.clipboard.writeText(t);toast('Log copied');}
+  catch(e){const r=document.createRange();r.selectNodeContents($('log'));const s=getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');toast('Log selected');}
+};
+
+/* ---------- start ---------- */
+if(!navigator.bluetooth){$('notice').style.display='block';}
+renderSets();renderSwatches();updatePreview();renderScenes();renderSummary();
+log('Jeanie '+VERSION+' loaded. Nothing is sent until you tap Connect.');
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(e=>log('Offline cache not set up: '+e.message));}
 </script>
 </body>
