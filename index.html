@@ -4,7 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#111418">
-<title>SKLight Test V 0.1</title>
+<title>SKLight Lights</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lights">
+<meta name="application-name" content="Lights">
 <style>
 :root{color-scheme:dark}
 *{box-sizing:border-box}
@@ -35,7 +43,7 @@ input[type=color]{width:100%;height:56px;border:0;background:none}
 </head>
 <body>
 <h1>SKLight Test</h1>
-<div class="ver">V 0.1 - Westinghouse SKLight string lights</div>
+<div class="ver">V 0.2 - Westinghouse SKLight string lights</div>
 <div id="notice">Web Bluetooth is not available here. Open this page in <b>Chrome</b> on your Android phone, and turn on <b>Bluetooth</b> and <b>Location</b>.</div>
 <div id="status">Not connected</div>
 
@@ -225,12 +233,13 @@ for(let n=1;n<=9;n++){const b=document.createElement('button');b.textContent='Sc
 
 $('bClear').onclick=()=>{$('log').textContent='';};
 $('bCopy').onclick=async()=>{
-  const t='SKLight Test V 0.1 log\n'+$('log').textContent;
+  const t='SKLight Test V 0.2 log\n'+$('log').textContent;
   try{await navigator.clipboard.writeText(t);status('Log copied');}
   catch(e){const r=document.createRange();r.selectNodeContents($('log'));const s=getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');status('Log selected/copied');}
 };
 setCtl(false);
-log('Page loaded. V 0.1. Nothing is sent until you tap Connect.');
+log('Page loaded. V 0.2. Nothing is sent until you tap Connect.');
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(e=>log('Offline cache not set up: '+e.message));}
 </script>
 </body>
 </html>

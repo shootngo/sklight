@@ -1,0 +1,28 @@
+name: Bake icons and sync gh-pages
+on:
+  push:
+    branches: [main]
+    paths: ['icons/*.b64']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Decode icons
+        run: |
+          for f in icons/*.b64; do
+            [ -e "$f" ] || continue
+            base64 -d "$f" > "${f%.b64}"
+            git rm -q "$f"
+          done
+          git config user.name "github-actions[bot]"
+          git config user.email "41898613+github-actions[bot]@users.noreply.github.com"
+          git add icons/*.png
+          git diff --cached --quiet || git commit -m "Bake app icons from base64"
+          git push origin HEAD:main
+          git push origin HEAD:gh-pages
