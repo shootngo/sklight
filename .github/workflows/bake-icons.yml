@@ -1,8 +1,8 @@
 name: Bake icons and sync gh-pages
+# Runs on every push to main: builds any pending icons, then copies main to gh-pages (the branch Pages serves).
 on:
   push:
     branches: [main]
-    paths: ['icons/*.b64', 'icons/*.b64.part*']
   workflow_dispatch:
 permissions:
   contents: write
