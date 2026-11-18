@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111418">
+<title>SKLight Test V 0.1</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#111418;color:#e8eaed;font:19px/1.4 system-ui,sans-serif;padding:14px;max-width:640px;margin:auto}
+h1{font-size:24px;margin:4px 0 2px}
+.ver{color:#9aa0a6;font-size:15px}
+#status{font-size:22px;font-weight:600;padding:14px;border-radius:12px;background:#202428;margin:12px 0}
+#notice{display:none;background:#5c1f1f;padding:12px;border-radius:10px;margin:10px 0}
+label{display:block;margin:10px 0 4px}
+input[type=text]{width:100%;font-size:20px;padding:10px;border-radius:8px;border:1px solid #444;background:#1b1f23;color:#fff;font-family:monospace}
+button{font-size:20px;padding:16px;border-radius:12px;border:0;margin:6px 0;width:100%;background:#2d6cdf;color:#fff;font-weight:600}
+button:disabled{opacity:.35}
+.row{display:flex;gap:8px}.row button{flex:1}
+#bGreen{background:#1e8e3e;font-size:24px;padding:22px}
+#bRed{background:#b3261e}
+#bDisc{background:#5f6368}
+.small{background:#3c4043;font-size:17px;padding:10px}
+details{background:#1b1f23;border-radius:12px;padding:10px;margin:12px 0}
+summary{font-size:20px;font-weight:600;padding:6px}
+input[type=range]{width:100%;height:36px}
+input[type=color]{width:100%;height:56px;border:0;background:none}
+.chk{display:flex;gap:10px;align-items:center;margin:10px 0}
+.chk input{width:26px;height:26px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+#log{background:#000;color:#9fe39f;font:14px/1.35 monospace;padding:10px;border-radius:10px;height:300px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+.hint{color:#9aa0a6;font-size:15px}
+</style>
+</head>
+<body>
+<h1>SKLight Test</h1>
+<div class="ver">V 0.1 - Westinghouse SKLight string lights</div>
+<div id="notice">Web Bluetooth is not available here. Open this page in <b>Chrome</b> on your Android phone, and turn on <b>Bluetooth</b> and <b>Location</b>.</div>
+<div id="status">Not connected</div>
+
+<label for="mac">Light address (MAC)</label>
+<input type="text" id="mac" autocomplete="off" spellcheck="false">
+<div class="hint">Chrome can't read the light's address, so it's typed here. It's used to work out the unlock code.</div>
+
+<div class="chk"><input type="checkbox" id="optTime" checked><label for="optTime" style="margin:0">After unlocking, set the light's clock (the original app does this)</label></div>
+
+<button id="bConn">Connect</button>
+<button id="bGreen" disabled>Test: Green (half)</button>
+<button id="bRed" disabled>Undo: Back to red</button>
+<button id="bDisc" disabled>Disconnect</button>
+
+<details id="more">
+<summary>More</summary>
+<div class="row"><button id="bOn" disabled>On</button><button id="bOff" disabled>Off</button></div>
+<label for="color">Color</label>
+<input type="color" id="color" value="#ff0000">
+<label for="bright">Brightness: <span id="brightV">100</span>%</label>
+<input type="range" id="bright" min="1" max="100" value="100">
+<button id="bColor" disabled>Send color</button>
+<label for="warm">Warm white: <span id="warmV">128</span></label>
+<input type="range" id="warm" min="0" max="255" value="128">
+<button id="bWarm" disabled>Send warm white</button>
+<label>Scenes</label>
+<div class="grid" id="scenes"></div>
+<div class="chk"><input type="checkbox" id="optAuth"><label for="optAuth" style="margin:0">Use auth bytes in last 2 positions (default off = 00 00, like the app)</label></div>
+</details>
+
+<div class="row"><button class="small" id="bCopy">Copy log</button><button class="small" id="bClear">Clear log</button></div>
+<div id="log"></div>
+
+<script>
+'use strict';
+const SVC1=0xfff0, SVC2=0xfff4;
+const $=id=>document.getElementById(id);
+const hex=a=>Array.from(a,b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let dev=null, ch={}, unlocked=false, beat=null, authBytes=[0,0], busy=Promise.resolve();
+
+function ts(){const d=new Date();return d.toTimeString().slice(0,8)+'.'+String(d.getMilliseconds()).padStart(3,'0');}
+function log(m){const L=$('log');L.textContent+='['+ts()+'] '+m+'\n';L.scrollTop=L.scrollHeight;}
+function status(m){$('status').textContent=m;log('STATUS: '+m);}
+function setCtl(on){document.querySelectorAll('.ctl').forEach(b=>b.disabled=!on);}
+
+// MAC field
+const macIn=$('mac');
+macIn.value=localStorage.getItem('sklight_mac')||'C5:62:A5:B2:B8:16';
+macIn.addEventListener('change',()=>localStorage.setItem('sklight_mac',macIn.value.trim()));
+function parseMac(){
+  const s=macIn.value.trim().replace(/[^0-9a-fA-F]/g,'');
+  if(s.length!==12) return null;
+  const m=[];for(let i=0;i<12;i+=2)m.push(parseInt(s.substr(i,2),16));
+  return m;
+}
+
+// All GATT ops go through one queue so they never overlap
+function q(fn){const p=busy.then(fn,fn);busy=p.catch(()=>{});return p;}
+async function write(c,bytes,name,withResp){
+  const data=new Uint8Array(bytes);
+  return q(async()=>{
+    // The original app writes without response (Android's default for these characteristics)
+    if(!withResp&&c.writeValueWithoutResponse){
+      try{await c.writeValueWithoutResponse(data);return;}catch(e){log(name+' no-response write refused ('+e.message+'), retrying with response');}
+    }
+    await (c.writeValueWithResponse?c.writeValueWithResponse(data):c.writeValue(data));
+  });
+}
+async function read(c){return q(async()=>new Uint8Array((await c.readValue()).buffer));}
+
+function decode(v){
+  const t=v[0];
+  if(t===1) return 'color R='+v[1]+' G='+v[2]+' B='+v[3];
+  if(t===2) return 'warm white level '+v[1];
+  if(t===3) return v[1]===1?'power ON':(v[1]===2?'power OFF':'power code '+v[1]);
+  if(t===4) return 'scene '+v[1];
+  return 'unknown';
+}
+
+if(!navigator.bluetooth){$('notice').style.display='block';$('bConn').disabled=true;status('Web Bluetooth not available');}
+
+$('bConn').onclick=async()=>{
+  const mac=parseMac();
+  if(!mac){status('Check the address - it needs 12 hex digits like C5:62:A5:B2:B8:16');return;}
+  localStorage.setItem('sklight_mac',macIn.value.trim());
+  try{
+    status('Choose SKLight in the list…');
+    dev=await navigator.bluetooth.requestDevice({filters:[{name:'SKLight'}],optionalServices:[SVC1,SVC2]});
+    dev.addEventListener('gattserverdisconnected',onDisc);
+    status('Connecting…');
+    const srv=await dev.gatt.connect();
+    log('Connected to '+(dev.name||'?')+' (id '+dev.id+')');
+    const s1=await srv.getPrimaryService(SVC1), s2=await srv.getPrimaryService(SVC2);
+    ch.fff1=await s1.getCharacteristic(0xfff1);
+    ch.fff2=await s1.getCharacteristic(0xfff2);
+    ch.fff3=await s1.getCharacteristic(0xfff3);
+    ch.fff5=await s2.getCharacteristic(0xfff5);
+    ch.fff6=await s2.getCharacteristic(0xfff6);
+    $('bDisc').disabled=false;$('bConn').disabled=true;
+    // 1. notifications on FFF2
+    ch.fff2.addEventListener('characteristicvaluechanged',e=>{const v=new Uint8Array(e.target.value.buffer);log('FFF2 notify: '+hex(v)+'  = '+decode(v));});
+    await q(()=>ch.fff2.startNotifications());
+    log('FFF2 notifications on');
+    // 2. keep-alive 11 -> FFF5 every 2 s (the app runs this for every connected light)
+    startBeat();
+    status('Connected — unlocking…');
+    // 3. read random challenge from FFF3
+    const r=await read(ch.fff3);
+    log('FFF3 challenge: '+hex(r));
+    if(r.length<4) throw new Error('FFF3 gave fewer than 4 bytes');
+    const a0=(mac[0]^mac[1]^mac[2]^r[0]^r[1])&255, a1=(mac[3]^mac[4]^mac[5]^r[2]^r[3])&255;
+    authBytes=[a0,a1];
+    const auth=[a0,a1,255,255,255,255,255,255,255,255,255,255,255,255];
+    // 4. answer 3 times like the app
+    for(let i=1;i<=3;i++){
+      try{await write(ch.fff3,auth,'FFF3',false);log('FFF3 answer #'+i+': '+hex(auth));}
+      catch(e){log('FFF3 answer #'+i+' failed: '+e.message);}
+      await sleep(150);
+    }
+    // 5. optional clock set, as the app does after the answer
+    if($('optTime').checked){
+      const d=new Date(), wd=(d.getDay()+6)%7; // 0=Mon..6=Sun
+      const t=[wd,d.getHours(),d.getMinutes(),d.getSeconds()];
+      try{await write(ch.fff6,t,'FFF6',false);log('FFF6 clock set: '+hex(t));}catch(e){log('FFF6 clock set failed: '+e.message);}
+    }
+    await sleep(1000);
+    // 6. check result
+    let chk=null;
+    try{chk=await read(ch.fff3);log('FFF3 after unlock: '+hex(chk));}catch(e){log('FFF3 check read failed: '+e.message);}
+    if(chk&&chk.length&&chk.every(b=>b===0)){
+      log('UNLOCK FAILED');
+      status('Unlock FAILED (FFF3 '+hex(chk)+') — tap Copy log and send it to me');
+    }else{
+      unlocked=true; setCtl(true);
+      if(chk&&chk[0]===1){log('UNLOCKED');status('Unlocked — keeping awake (FFF3 '+hex(chk)+')');}
+      else status('Unlock answer sent, check unclear (FFF3 '+(chk?hex(chk):'n/a')+') — keeping awake');
+    }
+  }catch(e){
+    log('ERROR: '+e.message);
+    status(e.name==='NotFoundError'?'No light chosen':'Connect failed: '+e.message);
+    if(dev&&dev.gatt.connected) dev.gatt.disconnect(); else resetUI();
+  }
+};
+
+function startBeat(){
+  stopBeat();
+  const send=async()=>{
+    if(!dev||!dev.gatt.connected){stopBeat();return;}
+    try{await write(ch.fff5,[0x11],'FFF5',false);}catch(e){log('Keep-alive failed: '+e.message);}
+  };
+  send(); beat=setInterval(send,2000);
+  log('Keep-alive started: 11 -> FFF5 every 2 s');
+}
+function stopBeat(){if(beat){clearInterval(beat);beat=null;log('Keep-alive stopped');}}
+
+function resetUI(){unlocked=false;setCtl(false);$('bConn').disabled=!navigator.bluetooth;$('bDisc').disabled=true;}
+function onDisc(){stopBeat();resetUI();status('Disconnected');}
+$('bDisc').onclick=()=>{stopBeat();if(dev&&dev.gatt.connected)dev.gatt.disconnect();else onDisc();};
+
+async function cmd(bytes,label,times){
+  if(!unlocked||!dev||!dev.gatt.connected){status('Not connected');return;}
+  const b=bytes.slice(0,5);
+  if($('optAuth').checked){b.push(authBytes[0],authBytes[1]);}else{b.push(0,0);}
+  for(let i=0;i<(times||1);i++){
+    try{await write(ch.fff1,b,'FFF1',false);log('FFF1 '+label+': '+hex(b));}
+    catch(e){log('FFF1 '+label+' failed: '+e.message);}
+    if(times>1) await sleep(200);
+  }
+}
+
+$('bGreen').classList.add('ctl');$('bRed').classList.add('ctl');
+$('bGreen').onclick=()=>cmd([0xFA,1,0,0x7F,0],'Test green half');
+$('bRed').onclick=()=>cmd([0xFA,1,0x7F,0,0],'Back to red');
+['bOn','bOff','bColor','bWarm'].forEach(id=>$(id).classList.add('ctl'));
+$('bOn').onclick=()=>cmd([0xFA,3,1,0,0],'On',3);
+$('bOff').onclick=()=>cmd([0xFA,3,2,0,0],'Off',3);
+$('bright').oninput=()=>$('brightV').textContent=$('bright').value;
+$('warm').oninput=()=>$('warmV').textContent=$('warm').value;
+$('bColor').onclick=()=>{
+  const c=$('color').value, k=$('bright').value/100;
+  const rgb=[1,3,5].map(i=>Math.round(parseInt(c.substr(i,2),16)*k));
+  cmd([0xFA,1,rgb[0],rgb[1],rgb[2]],'Color');
+};
+$('bWarm').onclick=()=>cmd([0xFA,2,parseInt($('warm').value,10),0,0],'Warm white');
+for(let n=1;n<=9;n++){const b=document.createElement('button');b.textContent='Scene '+n;b.className='ctl';b.disabled=true;b.onclick=()=>cmd([0xFA,4,n,0,0],'Scene '+n);$('scenes').appendChild(b);}
+
+$('bClear').onclick=()=>{$('log').textContent='';};
+$('bCopy').onclick=async()=>{
+  const t='SKLight Test V 0.1 log\n'+$('log').textContent;
+  try{await navigator.clipboard.writeText(t);status('Log copied');}
+  catch(e){const r=document.createRange();r.selectNodeContents($('log'));const s=getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');status('Log selected/copied');}
+};
+setCtl(false);
+log('Page loaded. V 0.1. Nothing is sent until you tap Connect.');
+</script>
+</body>
+</html>
