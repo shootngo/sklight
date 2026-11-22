@@ -96,6 +96,14 @@ dialog h3{margin:0 0 10px;font-size:22px}
 .fxbtn{min-height:76px;border-radius:20px;background:linear-gradient(160deg,#3a2d22,#2a221b);border:1px solid var(--line);font-size:20px;font-weight:650}
 .fxbtn.run{border-color:var(--amber);background:linear-gradient(160deg,#5a3d1e,#3a2a18);box-shadow:0 0 22px #f2b45a33;color:var(--amber)}
 .fxbtn small{display:block;font-size:14px;font-weight:500;color:var(--muted);margin-top:2px}
+.fxcard{background:linear-gradient(160deg,#3a2d22,#2a221b);border:1px solid var(--line);border-radius:20px;padding:14px 16px 6px;margin:0 0 12px;transition:border-color .3s,box-shadow .3s}
+.fxcard.run{border-color:var(--amber);box-shadow:0 0 22px #f2b45a33}
+.fxhead{display:flex;align-items:center;gap:12px}
+.fxhead div{flex:1}.fxhead b{font-size:20px;display:block}.fxhead small{color:var(--muted);font-size:14px}
+.fxgo{min-width:92px;min-height:52px;border-radius:16px;background:linear-gradient(180deg,var(--amber),var(--amber2));color:#2a1a08;font-size:18px;font-weight:700}
+.fxcard.run .fxgo{background:#3a3029;color:var(--text);border:1px solid var(--amber)}
+.fxcard .slider{margin:10px 2px 8px}
+.fxopts{display:flex;gap:8px;margin:0 0 10px}
 .switchrow{display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(160deg,#3a2d22,#2a221b);border:1px solid var(--line);border-radius:20px;padding:14px 16px;margin-top:12px;transition:border-color .3s,box-shadow .3s}
 .switchrow.run{border-color:var(--amber);box-shadow:0 0 22px #f2b45a33}
 .switchrow b{font-size:20px}.switchrow small{display:block;color:var(--muted);font-size:14px}
@@ -118,7 +126,7 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
 <header>
   <img src="icons/logo-96.png" alt="" width="46" height="46">
   <h1>Jeanie</h1>
-  <span class="ver" id="ver">V 1.1</span>
+  <span class="ver" id="ver">V 1.2</span>
 </header>
 <div id="summary">Tap Connect on a light set to begin.</div>
 <div id="notice">This needs <b>Chrome</b> on an Android phone, with <b>Bluetooth</b> and <b>Location</b> turned on.</div>
@@ -140,18 +148,12 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
 <div class="slider">
   <label for="bright"><span>Brightness</span><span id="brightV">100%</span></label>
   <input type="range" id="bright" min="1" max="100" value="100">
+  <div class="targets" style="display:flex;margin-top:6px" id="briPresets"></div>
 </div>
 <button class="btn primary" id="sync" style="width:100%;min-height:64px;font-size:21px" disabled>Sync Color to all sets</button>
 
 <h2>Effects</h2>
-<div class="fx">
-  <button class="fxbtn" id="fxFade">Fade<small>Slow color drift</small></button>
-  <button class="fxbtn" id="fxParty">Party<small>Bright color jumps</small></button>
-</div>
-<div class="slider" id="speedBox" style="margin-top:14px">
-  <label for="speed"><span>Effect speed</span><span id="speedV">5</span></label>
-  <input type="range" id="speed" min="1" max="10" value="5">
-</div>
+<div id="fxCards"></div>
 <div class="switchrow" id="musicRow">
   <div><b>Music sync</b><small>Lights pulse to music. Uses the microphone only while on.</small></div>
   <label class="sw-toggle"><input type="checkbox" id="musicOn" aria-label="Music sync"><span></span></label>
@@ -166,8 +168,8 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
 
 <h2>Warm white</h2>
 <div class="slider">
-  <label for="warm"><span>Warmth level</span><span id="warmV">50%</span></label>
-  <input type="range" id="warm" min="0" max="255" value="128">
+  <label for="warm"><span>Warm white brightness</span><span id="warmV">50%</span></label>
+  <input type="range" id="warm" min="1" max="100" value="50">
 </div>
 
 <h2>Scenes</h2>
@@ -181,7 +183,7 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
   <div class="hint" id="timerWho"></div>
   <button class="btn ghost" id="timerCancel" style="width:100%;margin-top:10px">Cancel timer</button>
 </div>
-<div class="note">Keep Jeanie open on screen — effects, music sync and the timer only run while the app is open. The screen stays awake while they run.</div>
+<div class="note">Keep Jeanie open on screen — effects, music sync and the timer only run while the app is open. The built-in scenes play at the lights' own speed and brightness; the original app has no scene speed or scene brightness setting. The screen stays awake while they run.</div>
 
 <details class="adv" id="adv">
   <summary>Advanced</summary>
@@ -206,7 +208,7 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
 <div class="toast" id="toast"></div>
 <script>
 'use strict';
-const VERSION='V 1.1';
+const VERSION='V 1.2';
 const SVC1=0xfff0, SVC2=0xfff4;
 const SEED_SETS=[['Set 1','C5:62:A5:B2:B8:16'],['Set 2','D2:91:3A:10:66:27'],['Set 3','D4:98:0F:E1:D1:C4']];
 const SEED_DEVMAP={'M6Qe9EbmKLHgpwXkl3k7/g==':'C5:62:A5:B2:B8:16'}; // proven on Frank's phone (V 1.0 log)
@@ -472,12 +474,19 @@ async function cmdTo(ids,bytes5,label,times){
   }));
 }
 // sliders: send only the newest value per set, never pile up writes
-const pending={};
+const pending={}, lastLive={};
 function cmdLatest(ids,bytes5,label){
   ids.forEach(id=>{
     const first=!pending[id];pending[id]={bytes5,label};
     if(!first)return;
-    (async()=>{while(pending[id]){const p=pending[id];await cmdTo([id],p.bytes5,p.label);if(pending[id]===p)delete pending[id];}})();
+    (async()=>{
+      // live while dragging, but at most 10 writes a second per set; the last value is always sent
+      while(pending[id]){
+        const wait=100-(performance.now()-(lastLive[id]||0));if(wait>0)await sleep(wait);
+        const p=pending[id];lastLive[id]=performance.now();
+        await cmdTo([id],p.bytes5,p.label);if(pending[id]===p)delete pending[id];
+      }
+    })();
   });
 }
 
@@ -485,12 +494,23 @@ function cmdLatest(ids,bytes5,label){
 let color=localStorage.getItem('jeanie_color')||'#ffd9a0';
 let target='all';
 function targetIds(){const ready=readyIds();return target==='all'?ready:ready.filter(id=>id===target);}
-function rgbNow(){const k=$('bright').value/100;return [1,3,5].map(i=>Math.round(parseInt(color.substr(i,2),16)*k));}
+/* Brightness. The lights have no separate brightness command (the original app dims by sending
+   darker RGB values in FA 01, and warm white by its level byte in FA 02). LEDs look much brighter
+   than their number suggests at low values, so the slider follows a perceptual curve:
+   1% -> level 1 of 255 (night-light dim), 25% -> ~16, 50% -> ~64, 100% -> 255. */
+function briLevel(s){s=Math.max(1,Math.min(100,+s));return Math.round(1+254*Math.pow((s-1)/99,2));}
+function briK(){return briLevel($('bright').value)/255;}
+function rgbNow(){
+  const c=[1,3,5].map(i=>parseInt(color.substr(i,2),16));const m=Math.max(...c);
+  if(!m)return [0,0,0];
+  const t=briLevel($('bright').value); // brightest channel gets exactly this level, others keep their ratio
+  return c.map(x=>Math.round(x/m*t));
+}
 function colorBytes(){const c=rgbNow();return [0xFA,1,c[0],c[1],c[2]];}
 function updatePreview(rgb){const c=rgb||rgbNow();$('preview').style.background='rgb('+c.join(',')+')';$('preview').style.boxShadow='0 0 20px rgb('+c.join(',')+')';}
 function manual(){stopEffect(false);} // any manual color/scene/warm tap stops the running effect
 
-/* ---------- effects: fade, party, music (one at a time) ---------- */
+/* ---------- effects: fade, party, strobe, scene cycle, music (one at a time) ---------- */
 let effect=null, fxTimer=null, fxStart=0, rr=0;
 const lastSent={}, effBusy={};
 let fxColor=[0,0,0];
@@ -515,6 +535,22 @@ function startSender(maxPerSec){
 }
 let fxCount=0;
 let fxFrame=null;
+/* Speed sliders: 0..100, left = slow, right = fast (log scale between the two ends). */
+const lerpLog=(slow,fast,v)=>slow*Math.pow(fast/slow,v/100);
+const FX={
+  fade:  {title:'Fade',  sub:'Colors drift slowly around the rainbow', label:'Color loop', def:40,
+          val:v=>lerpLog(120,5,v),  text:x=>'One loop every '+fmtS(x)},
+  party: {title:'Party', sub:'Jumps between bright colors',             label:'Color change', def:60,
+          val:v=>lerpLog(3,0.2,v),  text:x=>'New color every '+fmtS(x)},
+  strobe:{title:'Strobe',sub:'Flashes on and off',                      label:'Flash speed', def:70,
+          val:v=>lerpLog(0.5,4,v),  text:x=>x.toFixed(1)+' flashes a second'},
+  scenes:{title:'Scene cycle',sub:'Steps through the 9 built-in scenes', label:'Next scene', def:40,
+          val:v=>lerpLog(60,3,v),   text:x=>'Next scene every '+fmtS(x)}
+};
+function fmtS(x){return x>=10?Math.round(x)+' s':(x>=1?x.toFixed(1)+' s':x.toFixed(2)+' s');}
+function fxSpeed(kind){const v=+(localStorage.getItem('jeanie_spd_'+kind)??FX[kind].def);return FX[kind].val(isFinite(v)?v:FX[kind].def);}
+let strobeWhite=localStorage.getItem('jeanie_strobe_white')==='1';
+
 function startEffect(kind){
   if(!readyIds().length){toast('Connect a light set first');return false;}
   stopEffect(false);
@@ -522,35 +558,92 @@ function startEffect(kind){
   log('Effect started: '+kind);
   if(kind==='fade'){
     startSender(8);
+    let h=0,last=performance.now();
     fxFrame=setInterval(()=>{
-      const sp=+$('speed').value; const period=130-sp*12; // seconds per full color circle: 118 s .. 10 s
-      const h=((performance.now()-fxStart)/1000/period)*360;
-      fxColor=hsv(h,1,$('bright').value/100);updatePreview(fxColor);
+      const now=performance.now();h+=(now-last)/1000/fxSpeed('fade')*360;last=now; // speed changes apply smoothly
+      fxColor=hsv(h,1,briK());updatePreview(fxColor);
     },50);
   }else if(kind==='party'){
     startSender(8);
     let i=Math.floor(Math.random()*PARTY.length),next=0;
     fxFrame=setInterval(()=>{
       const now=performance.now();if(now<next)return;
-      const sp=+$('speed').value; next=now+(2200-sp*200); // 2.0 s .. 0.2 s per color
+      next=now+fxSpeed('party')*1000;
       let j;do{j=Math.floor(Math.random()*PARTY.length);}while(j===i);i=j;
-      const k=$('bright').value/100;fxColor=PARTY[i].map(x=>Math.round(x*k));updatePreview(fxColor);
+      const k=briK();fxColor=PARTY[i].map(x=>Math.round(x*k));updatePreview(fxColor);
     },40);
+  }else if(kind==='strobe'){
+    // Each flash = one "on" color write + one "dark" color write (FA 01 .. / FA 01 00 00 00) to every
+    // selected set at the same moment. Half a flash is never shorter than 125 ms, so each set gets
+    // at most 8 writes a second and the fastest strobe is 4 flashes a second.
+    let lit=false;
+    const step=()=>{
+      if(effect!=='strobe')return;
+      lit=!lit;
+      const k=briK();
+      const on=strobeWhite?[255,255,255].map(x=>Math.round(x*k)):rgbNow();
+      const rgb=lit?on:[0,0,0];
+      updatePreview(rgb);
+      targetIds().forEach(id=>{
+        const c=connOf(id);if(!isReady(c)||effBusy[id])return; // never queue up writes on a slow light
+        effBusy[id]=true;
+        write(c,c.ch.fff1,build([0xFA,1,rgb[0],rgb[1],rgb[2]],c),'FFF1').catch(e=>log('['+nameOf(id)+'] strobe write failed: '+e.message)).finally(()=>{effBusy[id]=false;});
+      });
+      fxFrame=setTimeout(step,Math.max(125,500/fxSpeed('strobe')));
+    };
+    step();
+  }else if(kind==='scenes'){
+    // uses only the proven scene command FA 04 0n, at most one write every 3 s per set
+    let n=0;
+    const step=()=>{
+      if(effect!=='scenes')return;
+      n=n%9+1;
+      document.querySelectorAll('.scene').forEach((x,i)=>x.classList.toggle('sel',i===n-1));
+      cmdTo(targetIds(),[0xFA,4,n,0,0],'Scene cycle '+n+' ('+sceneNames[n-1]+')');
+      fxFrame=setTimeout(step,Math.max(3000,fxSpeed('scenes')*1000));
+    };
+    step();
   }
   renderFx();keepAwake();return true;
 }
 function stopEffect(restore){
   if(!effect)return;
   const was=effect;effect=null;
-  clearInterval(fxTimer);clearInterval(fxFrame);fxTimer=fxFrame=null;
+  clearInterval(fxTimer);clearInterval(fxFrame);clearTimeout(fxFrame);fxTimer=fxFrame=null;
   if(was==='music')stopMic();
   log('Effect stopped: '+was);
   renderFx();keepAwake();updatePreview();
-  if(restore&&readyIds().length)cmdTo(targetIds(),colorBytes(),'Restore color');
+  if(restore&&readyIds().length&&was!=='scenes')cmdTo(targetIds(),colorBytes(),'Restore color');
 }
-$('fxFade').onclick=()=>{if(effect==='fade')stopEffect(true);else startEffect('fade');};
-$('fxParty').onclick=()=>{if(effect==='party')stopEffect(true);else startEffect('party');};
-$('speed').oninput=()=>{$('speedV').textContent=$('speed').value;};
+function renderFxCards(){
+  const box=$('fxCards');box.innerHTML='';
+  Object.keys(FX).forEach(kind=>{
+    const f=FX[kind];
+    const card=document.createElement('div');card.className='fxcard';card.id='fx_'+kind;
+    const head=document.createElement('div');head.className='fxhead';
+    const t=document.createElement('div');t.innerHTML='<b></b><small></small>';t.querySelector('b').textContent=f.title;t.querySelector('small').textContent=f.sub;
+    const go=document.createElement('button');go.className='fxgo';go.textContent='Start';
+    go.onclick=()=>{if(effect===kind)stopEffect(true);else startEffect(kind);};
+    head.append(t,go);card.appendChild(head);
+    if(kind==='strobe'){
+      const o=document.createElement('div');o.className='fxopts';
+      [['Current color',false],['White',true]].forEach(([lbl,w])=>{
+        const b=document.createElement('button');b.className='chip'+(strobeWhite===w?' sel':'');b.textContent=lbl;
+        b.onclick=()=>{strobeWhite=w;localStorage.setItem('jeanie_strobe_white',w?'1':'0');o.querySelectorAll('.chip').forEach(x=>x.classList.toggle('sel',x===b));};
+        o.appendChild(b);
+      });
+      card.appendChild(o);
+    }
+    const sl=document.createElement('div');sl.className='slider';
+    const lab=document.createElement('label');const l1=document.createElement('span');l1.textContent='Speed';const l2=document.createElement('span');
+    lab.append(l1,l2);
+    const r=document.createElement('input');r.type='range';r.min=0;r.max=100;r.value=localStorage.getItem('jeanie_spd_'+kind)??f.def;r.setAttribute('aria-label',f.title+' speed');
+    const show=()=>{l2.textContent=f.text(f.val(+r.value));};
+    r.oninput=()=>{localStorage.setItem('jeanie_spd_'+kind,r.value);show();};
+    show();sl.append(lab,r);card.appendChild(sl);
+    box.appendChild(card);
+  });
+}
 
 /* music sync */
 let audio=null;
@@ -582,7 +675,7 @@ async function startMusic(){
     const bal=treb/(bass+treb+1); // 0 = all bass, 1 = all treble
     hue=hue*0.9+(bal*300)*0.1;     // bass -> red/orange, treble -> blue/violet
     const energy=Math.min(1,all/90*(0.5+sens/10));
-    const level=Math.min(1,0.12+0.35*energy+0.6*pulse)*($('bright').value/100);
+    const level=Math.min(1,0.12+0.35*energy+0.6*pulse)*briK();
     // round a little so tiny changes don't cause writes
     fxColor=hsv(Math.round(hue/6)*6,1,level).map(x=>Math.round(x/4)*4>255?255:Math.round(x/4)*4);
     $('meter').style.width=Math.round(Math.min(1,energy*0.6+pulse*0.6)*100)+'%';
@@ -599,14 +692,10 @@ function stopMic(){
 $('musicOn').onchange=()=>{if($('musicOn').checked)startMusic();else stopEffect(true);};
 $('sens').oninput=()=>{$('sensV').textContent=$('sens').value;};
 function renderFx(){
-  $('fxFade').classList.toggle('run',effect==='fade');
-  $('fxParty').classList.toggle('run',effect==='party');
-  $('fxFade').firstChild.textContent=effect==='fade'?'Fade — on':'Fade';
-  $('fxParty').firstChild.textContent=effect==='party'?'Party — on':'Party';
+  Object.keys(FX).forEach(k=>{const c=$('fx_'+k);if(!c)return;c.classList.toggle('run',effect===k);c.querySelector('.fxgo').textContent=effect===k?'Stop':'Start';});
   $('musicOn').checked=effect==='music';
   $('musicRow').classList.toggle('run',effect==='music');
   $('musicBox').style.display=effect==='music'?'block':'none';
-  $('speedBox').style.opacity=effect==='music'?.5:1;
 }
 
 /* ---------- auto-off timer ---------- */
@@ -770,8 +859,19 @@ function renderSwatches(){
   const sp=document.createElement('span');cu.append(inp,sp);box.appendChild(cu);
 }
 function pickColor(c){manual();color=c;localStorage.setItem('jeanie_color',c);renderSwatches();updatePreview();cmdLatest(targetIds(),colorBytes(),'Color');}
-$('bright').oninput=()=>{$('brightV').textContent=$('bright').value+'%';if(effect)return;updatePreview();cmdLatest(targetIds(),colorBytes(),'Brightness');};
-$('warm').oninput=()=>{manual();$('warmV').textContent=Math.round($('warm').value/2.55)+'%';cmdLatest(targetIds(),[0xFA,2,parseInt($('warm').value,10),0,0],'Warm white');};
+function setBright(v,send){
+  $('bright').value=v;$('brightV').textContent=$('bright').value+'%';localStorage.setItem('jeanie_bright',$('bright').value);
+  if(effect)return; // running effects pick up the new brightness themselves
+  updatePreview();if(send)cmdLatest(targetIds(),colorBytes(),'Brightness');
+}
+$('bright').oninput=()=>setBright($('bright').value,true);
+[['Night light',1],['Dim',12],['Half',50],['Full',100]].forEach(([l,v])=>{
+  const b=document.createElement('button');b.className='chip';b.textContent=l;b.onclick=()=>setBright(v,true);$('briPresets').appendChild(b);
+});
+setBright(localStorage.getItem('jeanie_bright')||100,false);
+function warmBytes(){return [0xFA,2,briLevel($('warm').value),0,0];}
+$('warm').oninput=()=>{manual();$('warmV').textContent=$('warm').value+'%';localStorage.setItem('jeanie_warm',$('warm').value);cmdLatest(targetIds(),warmBytes(),'Warm white');};
+$('warm').value=localStorage.getItem('jeanie_warm')||50;$('warmV').textContent=$('warm').value+'%';
 function renderScenes(){
   const box=$('scenes');box.innerHTML='';
   sceneNames.forEach((name,i)=>{
@@ -807,7 +907,7 @@ $('copyLog').onclick=async()=>{
 
 /* ---------- start ---------- */
 if(!navigator.bluetooth)$('notice').style.display='block';
-renderSets();renderSwatches();updatePreview();renderScenes();renderTimerChips();renderFx();renderSummary();
+renderSets();renderSwatches();updatePreview();renderScenes();renderTimerChips();renderFxCards();renderFx();renderSummary();
 log('Jeanie '+VERSION+' loaded. Nothing is sent until you tap Connect.');
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(e=>log('Offline cache not set up: '+e.message));}
 </script>
