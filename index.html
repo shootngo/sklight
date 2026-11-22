@@ -96,6 +96,13 @@ dialog h3{margin:0 0 10px;font-size:22px}
 .fxbtn{min-height:76px;border-radius:20px;background:linear-gradient(160deg,#3a2d22,#2a221b);border:1px solid var(--line);font-size:20px;font-weight:650}
 .fxbtn.run{border-color:var(--amber);background:linear-gradient(160deg,#5a3d1e,#3a2a18);box-shadow:0 0 22px #f2b45a33;color:var(--amber)}
 .fxbtn small{display:block;font-size:14px;font-weight:500;color:var(--muted);margin-top:2px}
+.scene.run{border-color:var(--amber);background:linear-gradient(160deg,#5a3d1e,#3a2a18);box-shadow:0 0 18px #f2b45a44;color:var(--amber)}
+.mycolors{display:flex;gap:12px;align-items:center;margin:14px 0 12px;flex-wrap:wrap}
+.slot{position:relative;width:62px;height:62px;border-radius:50%;border:3px solid #fff3;box-shadow:inset 0 0 0 1px #0004;overflow:visible}
+.slot input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;border-radius:50%}
+.slot .x{position:absolute;top:-8px;right:-8px;width:28px;height:28px;border-radius:50%;background:#3a3029;border:1px solid var(--line);color:var(--muted);font-size:15px;display:flex;align-items:center;justify-content:center;z-index:2}
+.slot.add{display:flex;align-items:center;justify-content:center;border:2px dashed #5a4b3e;background:transparent;color:var(--amber);font-size:28px}
+.chip .del{margin-left:8px;color:var(--dim)}
 .fxcard{background:linear-gradient(160deg,#3a2d22,#2a221b);border:1px solid var(--line);border-radius:20px;padding:14px 16px 6px;margin:0 0 12px;transition:border-color .3s,box-shadow .3s}
 .fxcard.run{border-color:var(--amber);box-shadow:0 0 22px #f2b45a33}
 .fxhead{display:flex;align-items:center;gap:12px}
@@ -172,9 +179,23 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
   <input type="range" id="warm" min="1" max="100" value="50">
 </div>
 
-<h2>Scenes</h2>
+<h2>Jeanie presets</h2>
+<div class="fxcard" id="myCard">
+  <div class="fxhead"><div><b>My Colors</b><small>Cycle through colors you pick</small></div><button class="fxgo" id="myGo">Start</button></div>
+  <div class="mycolors" id="mySlots"></div>
+  <div class="fxopts" id="myMode"></div>
+  <div class="fxopts" id="mySaved" style="flex-wrap:wrap"></div>
+</div>
+<div class="scenes" id="presets"></div>
+<div class="slider" style="margin-top:14px">
+  <label for="pspeed"><span>Preset speed</span><span id="pspeedV">1.0×</span></label>
+  <input type="range" id="pspeed" min="0" max="100" value="50">
+</div>
+<div class="hint">Run by Jeanie, so the Preset speed slider (also used by My Colors) and the Brightness slider above both work, live. Tap a running preset again to stop it.</div>
+
+<h2>Built-in scenes (fixed speed)</h2>
 <div class="scenes" id="scenes"></div>
-<div class="hint">Tap a scene to play it. Tap ✎ or press and hold to rename.</div>
+<div class="hint">These play inside the lights at their own speed and brightness — the lights have no setting to change either. Tap to play, tap ✎ or press and hold to rename.</div>
 
 <h2>Auto-off timer</h2>
 <div class="timerbox" id="timerChips"></div>
@@ -514,6 +535,7 @@ function manual(){stopEffect(false);} // any manual color/scene/warm tap stops t
 let effect=null, fxTimer=null, fxStart=0, rr=0;
 const lastSent={}, effBusy={};
 let fxColor=[0,0,0];
+let fxPerSet=null; // presets: (setIndex, setCount, id) -> [r,g,b]
 function hsv(h,s,v){h=((h%360)+360)%360;const f=n=>{const k=(n+h/60)%6;return v-v*s*Math.max(0,Math.min(k,4-k,1));};return [f(5),f(3),f(1)].map(x=>Math.round(x*255));}
 // Round-robin sender: each tick sends the current effect color to the next selected set,
 // so every set gets at most maxPerSec writes, and only when its value changed.
@@ -523,7 +545,8 @@ function startSender(maxPerSec){
     const ids=targetIds();if(!ids.length)return;
     rr=(rr+1)%ids.length;const id=ids[rr];
     const c=connOf(id);if(!isReady(c)||effBusy[id])return;
-    const b=build([0xFA,1,fxColor[0],fxColor[1],fxColor[2]],c);
+    const col=fxPerSet?fxPerSet(ids.indexOf(id),ids.length,id):fxColor;
+    const b=build([0xFA,1,col[0],col[1],col[2]],c);
     const key=b.join(',');if(lastSent[id]===key)return;
     const now=performance.now();
     if(lastSent['t'+id]&&now-lastSent['t'+id]<1000/maxPerSec-2)return;
@@ -609,7 +632,7 @@ function startEffect(kind){
 function stopEffect(restore){
   if(!effect)return;
   const was=effect;effect=null;
-  clearInterval(fxTimer);clearInterval(fxFrame);clearTimeout(fxFrame);fxTimer=fxFrame=null;
+  clearInterval(fxTimer);clearInterval(fxFrame);clearTimeout(fxFrame);fxTimer=fxFrame=null;fxPerSet=null;
   if(was==='music')stopMic();
   log('Effect stopped: '+was);
   renderFx();keepAwake();updatePreview();
@@ -691,7 +714,102 @@ function stopMic(){
 }
 $('musicOn').onchange=()=>{if($('musicOn').checked)startMusic();else stopEffect(true);};
 $('sens').oninput=()=>{$('sensV').textContent=$('sens').value;};
+/* ---------- Jeanie presets: app-driven, built only from FA 01 color writes ----------
+   Each preset is a function of time (scaled by the Preset speed slider) and the set's position,
+   returning a color at full strength; the Brightness slider (perceptual curve) scales it.
+   The shared sender limits every set to 8 writes a second and skips unchanged values. */
+const rnd=(i,salt)=>{const x=Math.sin(i*127.1+salt*311.7)*43758.5453;return x-Math.floor(x);};
+function noise(t,salt){const i=Math.floor(t),f=t-i,u=f*f*(3-2*f);return rnd(i,salt)*(1-u)+rnd(i+1,salt)*u;} // smooth 0..1
+const mix=(a,b,k)=>a.map((x,i)=>x+(b[i]-x)*k);
+const pal=(stops,x)=>{x=((x%1)+1)%1*stops.length;const i=Math.floor(x);return mix(stops[i],stops[(i+1)%stops.length],x-i);};
+const sparkle={};
+const PRESETS=[
+  {id:'candle',name:'Candle',f:(t,i)=>{const k=0.55+0.3*noise(t*3,i+1)+0.15*noise(t*9,i+7);return [255,120,24].map(x=>x*k);}},
+  {id:'fire',name:'Fireplace',f:(t,i)=>{const n=noise(t*4,i+3);const c=mix([255,40,0],[255,150,10],n);return c.map(x=>x*(0.45+0.55*noise(t*6,i+11)));}},
+  {id:'ocean',name:'Ocean',f:(t,i)=>{const w=0.5+0.5*Math.sin(t*0.9+i*1.3);const c=mix([0,60,255],[0,220,200],w);return c.map(x=>x*(0.55+0.45*noise(t*0.8,i+5)));}},
+  {id:'aurora',name:'Aurora',f:(t,i)=>pal([[0,255,90],[0,200,160],[90,0,255],[200,0,220]],t*0.05+i*0.17).map(x=>x*(0.6+0.4*noise(t*0.5,i+2)))},
+  {id:'sunset',name:'Sunset',f:(t,i)=>pal([[255,30,0],[255,110,0],[255,40,90],[150,0,200]],t*0.04+i*0.1)},
+  {id:'police',name:'Police',max:1,f:(t,i)=>{const p=(t*2)%2,red=((Math.floor(t*2)+i)%2)===0;const on=(p%1)<0.25||((p%1)>0.5&&(p%1)<0.75);return on?(red?[255,0,0]:[0,0,255]):[0,0,0];}},
+  {id:'chase',name:'Rainbow chase',f:(t,i,n)=>hsv(t*45+i*360/Math.max(1,n),1,1).map(x=>x)},
+  {id:'twinkle',name:'Twinkle',f:(t,i)=>{const s=sparkle[i]||(sparkle[i]={at:-9,next:rnd(i,9)*2});if(t>s.next){s.at=t;s.next=t+0.6+rnd(Math.floor(t*10),i)*2.4;}const v=Math.max(0,1-(t-s.at)/0.6);const k=0.22+0.78*v;s.v=v;return mix([255,170,80],[255,255,255],s.v).map(x=>x*k);}}
+];
+function presetSpeed(){return lerpLog(0.25,4,+$('pspeed').value);}
+function startPreset(p){
+  if(!readyIds().length){toast('Connect a light set first');return;}
+  stopEffect(false);
+  effect='preset:'+p.id;Object.keys(lastSent).forEach(k=>delete lastSent[k]);Object.keys(sparkle).forEach(k=>delete sparkle[k]);
+  log('Effect started: preset '+p.name);
+  let tt=0,last=performance.now();
+  const at=(i,n)=>{
+    const k=briLevel($('bright').value),raw=p.f(tt,i,n);
+    const out=raw.map(x=>Math.max(0,Math.min(255,Math.round(x/255*k))));
+    // at night-light levels keep a lit light at level 1 instead of rounding it to off
+    const m=Math.max(...raw);if(m>=24&&!out.some(x=>x>0))out[raw.indexOf(m)]=1;
+    return out;
+  };
+  fxFrame=setInterval(()=>{const now=performance.now();tt+=(now-last)/1000*Math.min(p.max||99,presetSpeed());last=now;fxColor=at(0,Math.max(1,targetIds().length));updatePreview(fxColor);},40);
+  fxPerSet=(i,n)=>at(i,n);
+  startSender(8);
+  renderFx();keepAwake();
+}
+/* ---------- My Colors: 2-4 colors chosen by the user, cycled with FA 01 writes ---------- */
+let my=jget('jeanie_my',null);
+if(!my||!Array.isArray(my.colors)||my.colors.length<2)my={colors:['#ff3b30','#ffcc00','#34c759','#007aff'],smooth:true};
+let mySaved=jget('jeanie_my_saved',[]);if(!Array.isArray(mySaved))mySaved=[];
+function saveMy(){localStorage.setItem('jeanie_my',JSON.stringify(my));}
+const toRgb=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));
+const norm=c=>{const m=Math.max(...c);return m?c.map(x=>x/m*255):[0,0,0];}; // full strength; Brightness slider sets the level
+const MY={id:'mycolors',name:'My Colors',f:(t)=>{
+  const cs=my.colors.map(h=>norm(toRgb(h)));const hold=3; // seconds per color at 1x speed
+  const x=t/hold,i=Math.floor(x)%cs.length,next=(i+1)%cs.length;
+  if(!my.smooth)return cs[i];
+  const f=x-Math.floor(x),u=f*f*(3-2*f);
+  return norm(mix(cs[i],cs[next],u)); // keep brightness even while blending
+}};
+function renderMy(){
+  const box=$('mySlots');box.innerHTML='';
+  my.colors.forEach((h,i)=>{
+    const sl=document.createElement('label');sl.className='slot';sl.style.background=h;sl.setAttribute('aria-label','Color '+(i+1));
+    const inp=document.createElement('input');inp.type='color';inp.value=h;
+    inp.oninput=()=>{my.colors[i]=inp.value;sl.style.background=inp.value;saveMy();};
+    sl.appendChild(inp);
+    if(my.colors.length>2){const x=document.createElement('button');x.className='x';x.textContent='✕';x.setAttribute('aria-label','Remove color');x.onclick=e=>{e.preventDefault();my.colors.splice(i,1);saveMy();renderMy();};sl.appendChild(x);}
+    box.appendChild(sl);
+  });
+  if(my.colors.length<4){const a=document.createElement('button');a.className='slot add';a.textContent='+';a.setAttribute('aria-label','Add a color');a.onclick=()=>{my.colors.push(['#ff2d92','#00c7be','#ff9500','#5856d6'][my.colors.length%4]);saveMy();renderMy();};box.appendChild(a);}
+  const mo=$('myMode');mo.innerHTML='';
+  [['Smooth fade',true],['Hard jump',false]].forEach(([l,v])=>{const b=document.createElement('button');b.className='chip'+(my.smooth===v?' sel':'');b.textContent=l;b.onclick=()=>{my.smooth=v;saveMy();renderMy();};mo.appendChild(b);});
+  const sv=$('mySaved');sv.innerHTML='';
+  mySaved.forEach((pl,i)=>{
+    const b=document.createElement('button');b.className='chip';
+    const dots=document.createElement('span');pl.colors.forEach(c=>{const d=document.createElement('i');d.style.cssText='display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:3px;vertical-align:-1px;background:'+c;dots.appendChild(d);});
+    const nm=document.createElement('span');nm.textContent=' '+pl.name;
+    const del=document.createElement('span');del.className='del';del.textContent='✕';
+    b.append(dots,nm,del);
+    b.onclick=e=>{
+      if(e.target===del){if(confirm('Delete palette "'+pl.name+'"?')){mySaved.splice(i,1);localStorage.setItem('jeanie_my_saved',JSON.stringify(mySaved));renderMy();}return;}
+      my={colors:pl.colors.slice(),smooth:pl.smooth};saveMy();renderMy();toast('Loaded '+pl.name);
+    };
+    sv.appendChild(b);
+  });
+  const save=document.createElement('button');save.className='chip';save.textContent='Save palette…';
+  save.onclick=async()=>{const a=await ask('Save these colors','Palette name','My palette '+(mySaved.length+1));if(!a||!a[0])return;mySaved.push({name:a[0].slice(0,20),colors:my.colors.slice(),smooth:my.smooth});mySaved=mySaved.slice(-6);localStorage.setItem('jeanie_my_saved',JSON.stringify(mySaved));renderMy();toast('Saved');};
+  sv.appendChild(save);
+}
+$('myGo').onclick=()=>{if(effect==='preset:mycolors')stopEffect(true);else startPreset(MY);};
+function renderPresets(){
+  const box=$('presets');box.innerHTML='';
+  PRESETS.forEach(p=>{
+    const b=document.createElement('button');b.className='scene';b.id='pr_'+p.id;b.textContent=p.name;
+    b.onclick=()=>{if(effect==='preset:'+p.id)stopEffect(true);else startPreset(p);};
+    box.appendChild(b);
+  });
+}
+$('pspeed').oninput=()=>{$('pspeedV').textContent=presetSpeed().toFixed(presetSpeed()<1?2:1)+'×';localStorage.setItem('jeanie_pspeed',$('pspeed').value);};
+$('pspeed').value=localStorage.getItem('jeanie_pspeed')||50;$('pspeed').oninput();
 function renderFx(){
+  PRESETS.forEach(p=>{const b=$('pr_'+p.id);if(b)b.classList.toggle('run',effect==='preset:'+p.id);});
+  $('myCard').classList.toggle('run',effect==='preset:mycolors');$('myGo').textContent=effect==='preset:mycolors'?'Stop':'Start';
   Object.keys(FX).forEach(k=>{const c=$('fx_'+k);if(!c)return;c.classList.toggle('run',effect===k);c.querySelector('.fxgo').textContent=effect===k?'Stop':'Start';});
   $('musicOn').checked=effect==='music';
   $('musicRow').classList.toggle('run',effect==='music');
@@ -907,7 +1025,7 @@ $('copyLog').onclick=async()=>{
 
 /* ---------- start ---------- */
 if(!navigator.bluetooth)$('notice').style.display='block';
-renderSets();renderSwatches();updatePreview();renderScenes();renderTimerChips();renderFxCards();renderFx();renderSummary();
+renderSets();renderSwatches();updatePreview();renderScenes();renderPresets();renderMy();renderTimerChips();renderFxCards();renderFx();renderSummary();
 log('Jeanie '+VERSION+' loaded. Nothing is sent until you tap Connect.');
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(e=>log('Offline cache not set up: '+e.message));}
 </script>
