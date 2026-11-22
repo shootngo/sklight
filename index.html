@@ -133,7 +133,7 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
 <header>
   <img src="icons/logo-96.png" alt="" width="46" height="46">
   <h1>Jeanie</h1>
-  <span class="ver" id="ver">V 1.2</span>
+  <span class="ver" id="ver">V 1.3</span>
 </header>
 <div id="summary">Tap Connect on a light set to begin.</div>
 <div id="notice">This needs <b>Chrome</b> on an Android phone, with <b>Bluetooth</b> and <b>Location</b> turned on.</div>
@@ -179,7 +179,20 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
   <input type="range" id="warm" min="1" max="100" value="50">
 </div>
 
-<h2>Jeanie presets</h2>
+<h2>Scenes</h2>
+<div class="scenes" id="mainScenes"></div>
+<div class="slider" style="margin-top:14px">
+  <label for="pspeed"><span>Speed</span><span id="pspeedV">1.0×</span></label>
+  <input type="range" id="pspeed" min="0" max="100" value="50">
+</div>
+<div class="slider">
+  <label for="bright2"><span>Brightness</span><span id="bright2V">100%</span></label>
+  <input type="range" id="bright2" min="1" max="100" value="100">
+</div>
+<div class="note" id="hwNote" style="display:none;margin-top:0">An original light scene is playing — those run at a fixed speed and brightness, so these sliders are paused. Tap any scene above to adjust again.</div>
+<div class="hint">Every scene here is run by Jeanie, so Speed and Brightness change it live. Each light set shows one color along its whole string; with several sets, effects like Stargazer and Thunderstorm happen at different moments on each set. Tap a running scene again to stop it. Tap ✎ or press and hold to rename.</div>
+
+<h2>More presets</h2>
 <div class="fxcard" id="myCard">
   <div class="fxhead"><div><b>My Colors</b><small>Cycle through colors you pick</small></div><button class="fxgo" id="myGo">Start</button></div>
   <div class="mycolors" id="mySlots"></div>
@@ -187,15 +200,13 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
   <div class="fxopts" id="mySaved" style="flex-wrap:wrap"></div>
 </div>
 <div class="scenes" id="presets"></div>
-<div class="slider" style="margin-top:14px">
-  <label for="pspeed"><span>Preset speed</span><span id="pspeedV">1.0×</span></label>
-  <input type="range" id="pspeed" min="0" max="100" value="50">
-</div>
-<div class="hint">Run by Jeanie, so the Preset speed slider (also used by My Colors) and the Brightness slider above both work, live. Tap a running preset again to stop it.</div>
+<div class="hint">These also follow Speed and Brightness above.</div>
 
-<h2>Built-in scenes (fixed speed)</h2>
-<div class="scenes" id="scenes"></div>
-<div class="hint">These play inside the lights at their own speed and brightness — the lights have no setting to change either. Tap to play, tap ✎ or press and hold to rename.</div>
+<details class="adv" id="hwBox" style="margin-top:18px">
+  <summary>Original light scenes (fixed speed and brightness)</summary>
+  <div class="scenes" id="scenes"></div>
+  <div class="hint">Built into the lights. Their speed and brightness can't be changed — the lights have no setting for either.</div>
+</details>
 
 <h2>Auto-off timer</h2>
 <div class="timerbox" id="timerChips"></div>
@@ -204,7 +215,7 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
   <div class="hint" id="timerWho"></div>
   <button class="btn ghost" id="timerCancel" style="width:100%;margin-top:10px">Cancel timer</button>
 </div>
-<div class="note">Keep Jeanie open on screen — effects, music sync and the timer only run while the app is open. The built-in scenes play at the lights' own speed and brightness; the original app has no scene speed or scene brightness setting. The screen stays awake while they run.</div>
+<div class="note">Keep Jeanie open on screen — effects, music sync and the timer only run while the app is open.  The screen stays awake while they run.</div>
 
 <details class="adv" id="adv">
   <summary>Advanced</summary>
@@ -229,7 +240,7 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
 <div class="toast" id="toast"></div>
 <script>
 'use strict';
-const VERSION='V 1.2';
+const VERSION='V 1.3';
 const SVC1=0xfff0, SVC2=0xfff4;
 const SEED_SETS=[['Set 1','C5:62:A5:B2:B8:16'],['Set 2','D2:91:3A:10:66:27'],['Set 3','D4:98:0F:E1:D1:C4']];
 const SEED_DEVMAP={'M6Qe9EbmKLHgpwXkl3k7/g==':'C5:62:A5:B2:B8:16'}; // proven on Frank's phone (V 1.0 log)
@@ -529,7 +540,7 @@ function rgbNow(){
 }
 function colorBytes(){const c=rgbNow();return [0xFA,1,c[0],c[1],c[2]];}
 function updatePreview(rgb){const c=rgb||rgbNow();$('preview').style.background='rgb('+c.join(',')+')';$('preview').style.boxShadow='0 0 20px rgb('+c.join(',')+')';}
-function manual(){stopEffect(false);} // any manual color/scene/warm tap stops the running effect
+function manual(){stopEffect(false);if(typeof setHw==='function')setHw(0);} // any manual color/scene/warm tap stops the running effect
 
 /* ---------- effects: fade, party, strobe, scene cycle, music (one at a time) ---------- */
 let effect=null, fxTimer=null, fxStart=0, rr=0;
@@ -567,7 +578,7 @@ const FX={
           val:v=>lerpLog(3,0.2,v),  text:x=>'New color every '+fmtS(x)},
   strobe:{title:'Strobe',sub:'Flashes on and off',                      label:'Flash speed', def:70,
           val:v=>lerpLog(0.5,4,v),  text:x=>x.toFixed(1)+' flashes a second'},
-  scenes:{title:'Scene cycle',sub:'Steps through the 9 built-in scenes', label:'Next scene', def:40,
+  scenes:{title:'Scene cycle',sub:'Steps through the 9 original light scenes', label:'Next scene', def:40,
           val:v=>lerpLog(60,3,v),   text:x=>'Next scene every '+fmtS(x)}
 };
 function fmtS(x){return x>=10?Math.round(x)+' s':(x>=1?x.toFixed(1)+' s':x.toFixed(2)+' s');}
@@ -576,7 +587,7 @@ let strobeWhite=localStorage.getItem('jeanie_strobe_white')==='1';
 
 function startEffect(kind){
   if(!readyIds().length){toast('Connect a light set first');return false;}
-  stopEffect(false);
+  stopEffect(false);setHw(0);
   effect=kind;fxStart=performance.now();Object.keys(lastSent).forEach(k=>delete lastSent[k]);
   log('Effect started: '+kind);
   if(kind==='fade'){
@@ -621,7 +632,7 @@ function startEffect(kind){
     const step=()=>{
       if(effect!=='scenes')return;
       n=n%9+1;
-      document.querySelectorAll('.scene').forEach((x,i)=>x.classList.toggle('sel',i===n-1));
+      document.querySelectorAll('#scenes .scene').forEach((x,i)=>x.classList.toggle('sel',i===n-1));
       cmdTo(targetIds(),[0xFA,4,n,0,0],'Scene cycle '+n+' ('+sceneNames[n-1]+')');
       fxFrame=setTimeout(step,Math.max(3000,fxSpeed('scenes')*1000));
     };
@@ -737,11 +748,13 @@ function presetSpeed(){return lerpLog(0.25,4,+$('pspeed').value);}
 function startPreset(p){
   if(!readyIds().length){toast('Connect a light set first');return;}
   stopEffect(false);
-  effect='preset:'+p.id;Object.keys(lastSent).forEach(k=>delete lastSent[k]);Object.keys(sparkle).forEach(k=>delete sparkle[k]);
+  setHw(0);
+  effect='preset:'+p.id;Object.keys(lastSent).forEach(k=>delete lastSent[k]);Object.keys(sparkle).forEach(k=>delete sparkle[k]);Object.keys(st).forEach(k=>delete st[k]);
+  const t0=performance.now();
   log('Effect started: preset '+p.name);
   let tt=0,last=performance.now();
   const at=(i,n)=>{
-    const k=briLevel($('bright').value),raw=p.f(tt,i,n);
+    const k=briLevel($('bright').value),raw=p.f(tt,i,n,(performance.now()-t0)/1000);
     const out=raw.map(x=>Math.max(0,Math.min(255,Math.round(x/255*k))));
     // at night-light levels keep a lit light at level 1 instead of rounding it to off
     const m=Math.max(...raw);if(m>=24&&!out.some(x=>x>0))out[raw.indexOf(m)]=1;
@@ -797,6 +810,75 @@ function renderMy(){
   sv.appendChild(save);
 }
 $('myGo').onclick=()=>{if(effect==='preset:mycolors')stopEffect(true);else startPreset(MY);};
+/* ---------- Main scenes: Jeanie-driven versions of the 9 original scenes, plus 3 extras ----------
+   FA 01 color writes only, so Speed and Brightness both apply. (The originals, FA 04 0n, have no
+   speed or brightness byte in the original app, so they can't be adjusted.) f(t, set, sets, realSeconds) */
+const BRIGHT7=[[255,0,0],[255,140,0],[255,255,0],[0,255,0],[0,255,255],[0,0,255],[255,0,255]];
+const st={}; // per-set random state for scenes, reset on start
+function sched(key,t,rt,minS,maxS,salt){
+  // random events per set: spacing is in speed-scaled time t (so Speed changes apply at once),
+  // the flash/twinkle shape itself is timed in real seconds rt (so it never gets too short to show)
+  const o=st[key]||(st[key]={next:t+rnd(salt,7)*minS,at:-99,n:0}); // first event comes soon after starting
+  if(t>=o.next){o.at=rt;o.n++;o.next=t+minS+rnd(o.n,salt)*(maxS-minS);}
+  return o;
+}
+const SCENE_FX=[
+  {f:(t,i)=>hsv(t*12+i*40,0.45,1).map(x=>x*(0.55+0.45*noise(t*2.5,i+21)))},                       // Glimmer: pastel shimmer
+  {max:2,f:(t,i)=>BRIGHT7[(Math.floor(t*2)+i)%7]},                                                    // Flash: hard color jumps
+  {f:(t,i)=>rnd(Math.floor(t*6),i+3)>0.82?[255,255,255]:hsv(t*90+i*60,1,1).map(x=>x*0.7)},          // Dazzle: fast rainbow + sparkles
+  {max:2,f:(t,i)=>{const x=t+i*0.37,f=x-Math.floor(x);return f<0.75?BRIGHT7[Math.floor(x)%7]:[0,0,0];}}, // Wink: color, blink off, next color
+  {f:(t,i)=>pal(BRIGHT7,t*0.25/7*3+i*0.14)},                                                          // Vivid: smooth saturated fade
+  {f:(t,i,n)=>hsv(t*30+i*360/Math.max(1,n),1,1)},                                                     // Spectrum: rainbow across sets
+  {f:(t,i)=>pal([[255,0,0],[255,255,255],[0,0,255]],t*0.2+i/3)},                                     // Patriotic
+  {f:(t,i)=>pal([[120,255,60],[255,120,180],[255,230,80],[80,220,140]],t*0.12+i*0.25)},              // Spring
+  {f:(t,i)=>rnd(Math.floor(t*5),i+9)>0.9?[255,255,255]:(((Math.floor(t*0.8)+i)%2)?[255,0,0]:[0,255,0])} // Christmas
+];
+const EXTRA_SCENES=[
+  {id:'wash',name:'Color Wash',f:(t,i)=>{ // amber -> soft blue -> amber; one cycle = 5 min at 1x (20 min .. 1.25 min)
+    const x=(t/300+i*0.08)%1,k=0.5-0.5*Math.cos(x*2*Math.PI);return norm(mix([255,150,40],[110,160,255],k));}},
+  {id:'storm',name:'Thunder\u00ADstorm',f:(t,i,n,rt)=>{
+    const rumble=0.45+0.55*noise(t*0.35,i+40);
+    let c=[40,50,85].map(x=>x*rumble); // dim stormy blue-gray
+    const o=sched('storm'+i,t,rt,2.5,11,i+50);const d=rt-o.at,dbl=rnd(o.n,i+60)>0.5;
+    const lit=dbl?(d<0.15||(d>0.3&&d<0.5)):(d<0.25);
+    if(lit)c=[255,255,255];else if(d<0.8)c=mix([170,180,220],c,Math.min(1,d/0.8)); // afterglow
+    return c;}},
+  {id:'stars',name:'Stargazer',f:(t,i,n,rt)=>{
+    const base=[6,12,70];const o=sched('star'+i,t,rt,0.8,4,i+70);const d=rt-o.at;
+    if(d>=0&&d<0.9){const k=Math.sin(Math.PI*d/0.9);const tw=rnd(o.n,i+80)>0.5?[230,235,255]:[160,200,255];return mix(base,tw,k*0.85);}
+    return base;}}
+];
+function sceneObj(i){return i<9?{id:'s'+(i+1),get name(){return sceneNames[i];},max:SCENE_FX[i].max,f:SCENE_FX[i].f}:EXTRA_SCENES[i-9];}
+const MAIN_SCENES=Array.from({length:12},(_,i)=>sceneObj(i));
+function renderMainScenes(){
+  const box=$('mainScenes');box.innerHTML='';
+  MAIN_SCENES.forEach((p,i)=>{
+    const b=document.createElement('button');b.className='scene';b.id='pr_'+p.id;
+    const t=document.createElement('span');t.textContent=p.name;b.appendChild(t);
+    let pen=null;
+    if(i<9){
+      pen=document.createElement('span');pen.className='pen';pen.textContent='✎';pen.setAttribute('role','button');pen.setAttribute('aria-label','Rename '+p.name);b.appendChild(pen);
+      let held=false,timer=null;
+      b.addEventListener('pointerdown',()=>{held=false;timer=setTimeout(()=>{held=true;renameScene(i);},600);});
+      ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>clearTimeout(timer)));
+      b.addEventListener('contextmenu',e=>e.preventDefault());
+      b.onclick=e=>{if(held){held=false;return;}if(e.target===pen){renameScene(i);return;}toggleScene(p);};
+    }else b.onclick=()=>toggleScene(p);
+    box.appendChild(b);
+  });
+  renderFx();
+}
+function toggleScene(p){if(effect==='preset:'+p.id)stopEffect(true);else startPreset(p);}
+
+/* original hardware scenes: fixed speed and brightness */
+let hwScene=0;
+function setHw(n){hwScene=n;updateHwUI();}
+function updateHwUI(){
+  const fixed=!!hwScene||effect==='scenes';
+  ['pspeed','bright','bright2'].forEach(id=>$(id).disabled=fixed);
+  $('hwNote').style.display=fixed?'block':'none';
+  document.querySelectorAll('#scenes .scene').forEach((x,i)=>x.classList.toggle('sel',hwScene===i+1));
+}
 function renderPresets(){
   const box=$('presets');box.innerHTML='';
   PRESETS.forEach(p=>{
@@ -808,7 +890,8 @@ function renderPresets(){
 $('pspeed').oninput=()=>{$('pspeedV').textContent=presetSpeed().toFixed(presetSpeed()<1?2:1)+'×';localStorage.setItem('jeanie_pspeed',$('pspeed').value);};
 $('pspeed').value=localStorage.getItem('jeanie_pspeed')||50;$('pspeed').oninput();
 function renderFx(){
-  PRESETS.forEach(p=>{const b=$('pr_'+p.id);if(b)b.classList.toggle('run',effect==='preset:'+p.id);});
+  PRESETS.concat(typeof MAIN_SCENES!=='undefined'?MAIN_SCENES:[]).forEach(p=>{const b=$('pr_'+p.id);if(b)b.classList.toggle('run',effect==='preset:'+p.id);});
+  if(typeof updateHwUI==='function')updateHwUI();
   $('myCard').classList.toggle('run',effect==='preset:mycolors');$('myGo').textContent=effect==='preset:mycolors'?'Stop':'Start';
   Object.keys(FX).forEach(k=>{const c=$('fx_'+k);if(!c)return;c.classList.toggle('run',effect===k);c.querySelector('.fxgo').textContent=effect===k?'Stop':'Start';});
   $('musicOn').checked=effect==='music';
@@ -978,11 +1061,12 @@ function renderSwatches(){
 }
 function pickColor(c){manual();color=c;localStorage.setItem('jeanie_color',c);renderSwatches();updatePreview();cmdLatest(targetIds(),colorBytes(),'Color');}
 function setBright(v,send){
-  $('bright').value=v;$('brightV').textContent=$('bright').value+'%';localStorage.setItem('jeanie_bright',$('bright').value);
+  $('bright').value=v;$('bright2').value=$('bright').value;$('brightV').textContent=$('bright2V').textContent=$('bright').value+'%';localStorage.setItem('jeanie_bright',$('bright').value);
   if(effect)return; // running effects pick up the new brightness themselves
   updatePreview();if(send)cmdLatest(targetIds(),colorBytes(),'Brightness');
 }
 $('bright').oninput=()=>setBright($('bright').value,true);
+$('bright2').oninput=()=>setBright($('bright2').value,true);
 [['Night light',1],['Dim',12],['Half',50],['Full',100]].forEach(([l,v])=>{
   const b=document.createElement('button');b.className='chip';b.textContent=l;b.onclick=()=>setBright(v,true);$('briPresets').appendChild(b);
 });
@@ -1005,16 +1089,15 @@ function renderScenes(){
       if(held){held=false;return;}
       if(e.target===pen){renameScene(i);return;}
       const ids=targetIds();if(!ids.length){toast('Connect a light set first');return;}
-      manual();
-      document.querySelectorAll('.scene').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');
-      cmdTo(ids,[0xFA,4,n,0,0],'Scene '+n+' ('+name+')');
+      manual();setHw(n);
+      cmdTo(ids,[0xFA,4,n,0,0],'Original scene '+n+' ('+name+')');
     };
     box.appendChild(b);
   });
 }
 async function renameScene(i){
   const a=await ask('Rename scene '+(i+1),'Name (leave empty for “'+SCENE_DEFAULTS[i]+'”)',sceneNames[i]);
-  if(!a)return;sceneNames[i]=(a[0]||SCENE_DEFAULTS[i]).slice(0,24);saveScenes();renderScenes();
+  if(!a)return;sceneNames[i]=(a[0]||SCENE_DEFAULTS[i]).slice(0,24);saveScenes();renderScenes();renderMainScenes();
 }
 $('clearLog').onclick=()=>{$('log').textContent='';};
 $('copyLog').onclick=async()=>{
@@ -1025,7 +1108,7 @@ $('copyLog').onclick=async()=>{
 
 /* ---------- start ---------- */
 if(!navigator.bluetooth)$('notice').style.display='block';
-renderSets();renderSwatches();updatePreview();renderScenes();renderPresets();renderMy();renderTimerChips();renderFxCards();renderFx();renderSummary();
+renderSets();renderSwatches();updatePreview();renderScenes();renderPresets();renderMainScenes();renderMy();renderTimerChips();renderFxCards();renderFx();renderSummary();
 log('Jeanie '+VERSION+' loaded. Nothing is sent until you tap Connect.');
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(e=>log('Offline cache not set up: '+e.message));}
 </script>
