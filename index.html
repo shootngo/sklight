@@ -133,7 +133,7 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
 <header>
   <img src="icons/logo-96.png" alt="" width="46" height="46">
   <h1>Jeanie</h1>
-  <span class="ver" id="ver">V 1.3</span>
+  <span class="ver" id="ver">V 1.4</span>
 </header>
 <div id="summary">Tap Connect on a light set to begin.</div>
 <div id="notice">This needs <b>Chrome</b> on an Android phone, with <b>Bluetooth</b> and <b>Location</b> turned on.</div>
@@ -180,6 +180,11 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
 </div>
 
 <h2>Scenes</h2>
+<div class="hint" style="margin:0 4px 10px">Built into the lights. They play at their own fixed speed and brightness. Tap ✎ or press and hold to rename.</div>
+<div class="scenes" id="scenes"></div>
+<div class="note" id="hwNote" style="display:none">A built-in scene is playing. It runs at its own fixed speed and brightness, so the Speed and Brightness sliders are paused. Tap a Jeanie scene, a preset or a color to adjust again.</div>
+
+<h2>Jeanie scenes (adjustable speed and brightness)</h2>
 <div class="scenes" id="mainScenes"></div>
 <div class="slider" style="margin-top:14px">
   <label for="pspeed"><span>Speed</span><span id="pspeedV">1.0×</span></label>
@@ -189,8 +194,7 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
   <label for="bright2"><span>Brightness</span><span id="bright2V">100%</span></label>
   <input type="range" id="bright2" min="1" max="100" value="100">
 </div>
-<div class="note" id="hwNote" style="display:none;margin-top:0">An original light scene is playing — those run at a fixed speed and brightness, so these sliders are paused. Tap any scene above to adjust again.</div>
-<div class="hint">Every scene here is run by Jeanie, so Speed and Brightness change it live. Each light set shows one color along its whole string; with several sets, effects like Stargazer and Thunderstorm happen at different moments on each set. Tap a running scene again to stop it. Tap ✎ or press and hold to rename.</div>
+<div class="hint">Run by Jeanie, so Speed and Brightness change them live. Each light set shows one color along its whole string; with several sets, effects like Stargazer and Thunderstorm happen at different moments on each set. Tap a running scene again to stop it.</div>
 
 <h2>More presets</h2>
 <div class="fxcard" id="myCard">
@@ -201,12 +205,6 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
 </div>
 <div class="scenes" id="presets"></div>
 <div class="hint">These also follow Speed and Brightness above.</div>
-
-<details class="adv" id="hwBox" style="margin-top:18px">
-  <summary>Original light scenes (fixed speed and brightness)</summary>
-  <div class="scenes" id="scenes"></div>
-  <div class="hint">Built into the lights. Their speed and brightness can't be changed — the lights have no setting for either.</div>
-</details>
 
 <h2>Auto-off timer</h2>
 <div class="timerbox" id="timerChips"></div>
@@ -240,7 +238,7 @@ textarea{width:100%;min-height:84px;font:16px/1.4 ui-monospace,Menlo,monospace;p
 <div class="toast" id="toast"></div>
 <script>
 'use strict';
-const VERSION='V 1.3';
+const VERSION='V 1.4';
 const SVC1=0xfff0, SVC2=0xfff4;
 const SEED_SETS=[['Set 1','C5:62:A5:B2:B8:16'],['Set 2','D2:91:3A:10:66:27'],['Set 3','D4:98:0F:E1:D1:C4']];
 const SEED_DEVMAP={'M6Qe9EbmKLHgpwXkl3k7/g==':'C5:62:A5:B2:B8:16'}; // proven on Frank's phone (V 1.0 log)
